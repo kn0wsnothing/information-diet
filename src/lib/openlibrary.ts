@@ -122,11 +122,46 @@ export async function getBookDetails(openLibraryId: string): Promise<BookMetadat
     // Get first ISBN if available
     const isbn = book.isbn?.[0];
 
+    // Try to get page count from editions if not in works
+    let totalPages = book.number_of_pages;
+    if (!totalPages) {
+      try {
+        // Fetch editions to get page count
+        const editionsController = new AbortController();
+        const editionsTimeoutId = setTimeout(() => editionsController.abort(), 5000);
+        
+        const editionsResponse = await fetch(
+          `https://openlibrary.org/works/${workId}/editions.json?limit=10`,
+          {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'InformationDiet/1.0',
+            },
+            signal: editionsController.signal,
+          }
+        );
+        
+        clearTimeout(editionsTimeoutId);
+        
+        if (editionsResponse.ok) {
+          const editionsData = await editionsResponse.json();
+          // Find first edition with page count
+          const editionWithPages = editionsData.entries?.find((e: any) => e.number_of_pages);
+          if (editionWithPages) {
+            totalPages = editionWithPages.number_of_pages;
+          }
+        }
+      } catch (err) {
+        console.log('Could not fetch edition page count:', err);
+      }
+    }
+
     return {
       title: book.title,
       author: authorNames,
       coverUrl,
-      totalPages: book.number_of_pages,
+      totalPages,
       openLibraryId: book.key,
       isbn,
       publishedYear: book.first_publish_year,

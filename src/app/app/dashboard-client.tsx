@@ -7,6 +7,9 @@ import { UpdateProgressButton } from "./update-progress-button";
 import { RecategorizeButton } from "./recategorize-button";
 import { RemoveButton } from "./remove-button";
 import { Sidebar } from "./sidebar";
+import { OnboardingModal } from "./onboarding/onboarding-modal";
+import { getMacroLabel } from "@/lib/content-types";
+import { getItemOpenUrl, isReadwiseItem } from "@/lib/readwise-url";
 
 interface Item {
   id: string;
@@ -19,6 +22,7 @@ interface Item {
   timeSpentMinutes: number | null;
   estimatedMinutes: number | null;
   coverUrl: string | null;
+  readwiseDocumentId?: string | null;
 }
 
 interface DashboardData {
@@ -34,11 +38,13 @@ interface DashboardData {
   };
   readwiseConnected: boolean;
   userEmail: string;
+  showOnboarding: boolean;
+  onboardingStep: number;
 }
 
 export function DashboardClient({ 
   data, 
-  markItemDone, 
+  markItemDone,
   recategorizeItem,
   removeItem
 }: { 
@@ -48,7 +54,8 @@ export function DashboardClient({
   removeItem: (id: string) => Promise<void>;
 }) {
   const [activeView, setActiveView] = useState("suggestions");
-  const { allQueued, suggestedItems, suggestion, dietData, readwiseConnected, userEmail } = data;
+  const [showOnboardingModal, setShowOnboardingModal] = useState(data.showOnboarding);
+  const { allQueued, suggestedItems, suggestion, dietData, readwiseConnected, userEmail, onboardingStep } = data;
 
   const getProgressPercent = (item: Item) => {
     if (!item.totalPages || !item.currentPage) return 0;
@@ -67,75 +74,13 @@ export function DashboardClient({
         {suggestedItems.length > 0 ? (
           <div className="mt-4 space-y-2">
             {suggestedItems.map((item) => (
-              <div key={item.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                <div className="text-sm font-medium text-zinc-900">{item.title}</div>
-                <div className="mt-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-600">
-                      {item.macro === "SNACK"
-                        ? "Bite-sized"
-                        : item.macro === "MEAL"
-                          ? "Thoughtful"
-                          : "Time-tested"}
-                    </span>
-                    {isBook(item) && item.totalPages && (
-                      <span className="text-xs text-zinc-500">
-                        • {item.currentPage || 0}/{item.totalPages} pages
-                      </span>
-                    )}
-                  </div>
-                  {item.url && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-zinc-600 hover:text-zinc-900 underline"
-                    >
-                      Open
-                    </a>
-                  )}
-                </div>
-                {isBook(item) && item.totalPages && (
-                  <div className="mt-2 h-1 bg-zinc-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-zinc-400 transition-all"
-                      style={{ width: `${getProgressPercent(item)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-4 text-sm text-zinc-600">
-            No suggested items in your queue. Add some content to get started!
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-zinc-900">Your queue</div>
-          <div className="text-xs text-zinc-500">Showing {allQueued.length} items</div>
-        </div>
-        <div className="mt-4 grid gap-2">
-          {allQueued.length === 0 ? (
-            <div className="text-sm text-zinc-600">
-              Your queue is empty. Try adding some content.
-            </div>
-          ) : (
-            allQueued.map((item) => (
               <div key={item.id} className="rounded-xl border border-zinc-100 px-4 py-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium text-zinc-900">{item.title}</div>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-xs text-zinc-600">
-                        {item.macro === "SNACK"
-                          ? "Bite-sized"
-                          : item.macro === "MEAL"
-                            ? "Thoughtful"
-                            : "Time-tested"}
+                        {getMacroLabel(item.macro)}
                       </span>
                       {isBook(item) && item.totalPages && (
                         <span className="text-xs text-zinc-500">
@@ -188,14 +133,105 @@ export function DashboardClient({
                     />
                   </div>
                 </div>
-                {item.url ? (
+                {(item.url || item.readwiseDocumentId) ? (
                   <a
-                    href={item.url}
+                    href={getItemOpenUrl(item) || "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-block text-sm text-zinc-700 underline"
                   >
-                    Open
+                    {isReadwiseItem(item) ? "Open in Readwise" : "Open"}
+                  </a>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 text-sm text-zinc-600">
+            No suggested items in your queue. Add some content to get started!
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-zinc-900">Your queue</div>
+          <div className="text-xs text-zinc-500">Showing {allQueued.length} items</div>
+        </div>
+        <div className="mt-4 grid gap-2">
+          {allQueued.length === 0 ? (
+            <div className="text-sm text-zinc-600">
+              Your queue is empty. Try adding some content.
+            </div>
+          ) : (
+            allQueued.map((item) => (
+              <div key={item.id} className="rounded-xl border border-zinc-100 px-4 py-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-zinc-900">{item.title}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-xs text-zinc-600">
+                        {getMacroLabel(item.macro)}
+                      </span>
+                      {isBook(item) && item.totalPages && (
+                        <span className="text-xs text-zinc-500">
+                          • {item.currentPage || 0}/{item.totalPages} pages ({getProgressPercent(item)}%)
+                        </span>
+                      )}
+                      {!isBook(item) && item.estimatedMinutes && (
+                        <span className="text-xs text-zinc-500">
+                          • ~{item.estimatedMinutes} min
+                        </span>
+                      )}
+                      <RecategorizeButton
+                        itemId={item.id}
+                        currentMacro={item.macro}
+                        recategorizeAction={recategorizeItem}
+                      />
+                      <RemoveButton
+                        itemId={item.id}
+                        removeAction={removeItem}
+                      />
+                    </div>
+                    {isBook(item) && item.totalPages && (
+                      <div className="mt-2 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-zinc-900 transition-all"
+                          style={{ width: `${getProgressPercent(item)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {isBook(item) && item.totalPages && (
+                      <UpdateProgressButton
+                        itemId={item.id}
+                        itemTitle={item.title}
+                        currentPage={item.currentPage || 0}
+                        totalPages={item.totalPages}
+                        currentTimeSpent={item.timeSpentMinutes || 0}
+                      />
+                    )}
+                    <MarkDoneButton
+                      itemId={item.id}
+                      itemTitle={item.title}
+                      macro={item.macro}
+                      currentPage={item.currentPage || 0}
+                      totalPages={item.totalPages || undefined}
+                      currentTimeSpent={item.timeSpentMinutes || 0}
+                      estimatedMinutes={item.estimatedMinutes || undefined}
+                      markAction={markItemDone}
+                    />
+                  </div>
+                </div>
+                {(item.url || item.readwiseDocumentId) ? (
+                  <a
+                    href={getItemOpenUrl(item) || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-sm text-zinc-700 underline"
+                  >
+                    {isReadwiseItem(item) ? "Open in Readwise" : "Open"}
                   </a>
                 ) : null}
               </div>
@@ -225,11 +261,7 @@ export function DashboardClient({
                   <div className="text-sm font-medium text-zinc-900">{item.title}</div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-xs text-zinc-600">
-                      {item.macro === "SNACK"
-                        ? "Bite-sized"
-                        : item.macro === "MEAL"
-                          ? "Thoughtful"
-                          : "Time-tested"}
+                      {getMacroLabel(item.macro)}
                     </span>
                     {isBook(item) && item.totalPages && (
                       <span className="text-xs text-zinc-500">
@@ -282,14 +314,14 @@ export function DashboardClient({
                   />
                 </div>
               </div>
-              {item.url ? (
+              {(item.url || item.readwiseDocumentId) ? (
                 <a
-                  href={item.url}
+                  href={getItemOpenUrl(item) || "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-block text-sm text-zinc-700 underline"
                 >
-                  Open
+                  {isReadwiseItem(item) ? "Open in Readwise" : "Open"}
                 </a>
               ) : null}
             </div>
@@ -300,19 +332,27 @@ export function DashboardClient({
   );
 
   return (
-    <div className="flex h-screen bg-zinc-50">
-      <Sidebar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        dietData={dietData}
-        userEmail={userEmail}
-      />
+    <>
+      {showOnboardingModal && (
+        <OnboardingModal
+          initialStep={onboardingStep}
+          onClose={() => setShowOnboardingModal(false)}
+        />
+      )}
       
-      <div className="flex-1 overflow-auto">
+      <div className="flex h-screen bg-zinc-50">
+        <Sidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          dietData={dietData}
+          userEmail={userEmail}
+        />
+        
+        <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-              Your information diet
+              Your time investment
             </h1>
             <p className="mt-1 text-sm text-zinc-600">
               Gentle nudges to trade bite-sized reads for thoughtful ones and make room for time-tested books.
@@ -321,8 +361,9 @@ export function DashboardClient({
 
           {activeView === "suggestions" && renderSuggestionView()}
           {activeView === "feed" && renderFeedView()}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

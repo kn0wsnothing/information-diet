@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { inferMacroFromUrl, inferMacroFromTitle } from "@/lib/auto-categorize";
 import { estimateTimeFromPages } from "@/lib/time-estimation";
+import { mapMacroToContentType } from "@/lib/content-types";
 
 export async function addLink(formData: FormData) {
   const user = await currentUser();
@@ -31,6 +32,7 @@ export async function addLink(formData: FormData) {
   
   // Use URL categorization as primary, title as fallback
   const macro = macroFromUrl !== "MEAL" ? macroFromUrl : macroFromTitle;
+  const contentType = mapMacroToContentType(macro);
 
   await prisma.item.create({
     data: {
@@ -38,6 +40,7 @@ export async function addLink(formData: FormData) {
       title: itemTitle,
       url,
       macro,
+      contentType,
       status: "QUEUED",
     },
   });
@@ -76,6 +79,7 @@ export async function addBook(formData: FormData) {
       title,
       author: author || null,
       macro: "TIME_TESTED",
+      contentType: "JOURNEY", // Books are always journeys
       status: "QUEUED",
       // Open Library metadata
       coverUrl: coverUrl || null,
@@ -114,6 +118,7 @@ export async function addNewsletter(formData: FormData) {
       title,
       url: url || null,
       macro: "MEAL",
+      contentType: "SESSION", // Newsletters are typically sessions
       status: "QUEUED",
     },
   });

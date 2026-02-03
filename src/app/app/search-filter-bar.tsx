@@ -17,9 +17,9 @@ export function SearchFilterBar({
 }: SearchFilterBarProps) {
   const filters = [
     { id: "all", label: "All" },
-    { id: "SNACK", label: "Bite-sized" },
-    { id: "MEAL", label: "Thoughtful" },
-    { id: "TIME_TESTED", label: "Time-tested" },
+    { id: "SNACK", label: "⚡ Sprint" },
+    { id: "MEAL", label: "🎯 Session" },
+    { id: "TIME_TESTED", label: "🗺️ Journey" },
   ];
 
   return (

@@ -40,9 +40,9 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
   const currentData = data.periods[timeRange];
 
   const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "Bite-sized";
-    if (macro === "MEAL") return "Thoughtful";
-    return "Time-tested";
+    if (macro === "SNACK") return "⚡ Sprint";
+    if (macro === "MEAL") return "🎯 Session";
+    return "🗺️ Journey";
   };
 
   const getRecommendation = (data: DietData) => {
@@ -53,31 +53,31 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
     }
 
     if (snackPercent > 60) {
-      return "You've been consuming a lot of bite-sized content. Consider adding more thoughtful reads or time-tested books to your diet.";
+      return "You've been doing a lot of quick Sprints. Consider adding more focused Sessions or deep Journeys to your routine.";
     }
     if (mealPercent > 60 && timeTestedPercent < 20) {
-      return "You have a solid diet of thoughtful reads. Try to make room for more time-tested content.";
+      return "You have a solid routine of focused Sessions. Try to make room for more deep Journeys.";
     }
     if (timeTestedPercent > 60) {
-      return "You're reading a lot of books! Consider adding some variety with shorter, timely content.";
+      return "You're investing a lot in deep Journeys! Consider adding some variety with shorter, timely content.";
     }
     if (
       Math.abs(snackPercent - 33) < 10 &&
       Math.abs(mealPercent - 33) < 10 &&
       Math.abs(timeTestedPercent - 33) < 10
     ) {
-      return "Great balance! Your information diet is well distributed across all content types.";
+      return "Great balance! Your time investment is well distributed across all content types.";
     }
     if (snackPercent < 10) {
-      return "Add some variety with quick, bite-sized reads to stay informed on timely topics.";
+      return "Add some variety with quick Sprints to stay informed on timely topics.";
     }
     if (mealPercent < 10) {
-      return "Balance your diet with more thoughtful, long-form reads.";
+      return "Balance your reading with more focused Sessions for deeper exploration.";
     }
     if (timeTestedPercent < 10) {
-      return "Make room for time-tested books that provide deep, lasting insights.";
+      return "Make room for deep Journeys that provide lasting insights.";
     }
-    return "Keep up your reading habits! Track your progress to maintain a balanced diet.";
+    return "Keep up your reading habits! Track your progress to maintain balance.";
   };
 
   return (
@@ -89,10 +89,10 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
             ← Back to dashboard
           </Link>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900">
-            Reading Analytics
+            Time Investment Analytics
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Track your reading patterns and diet balance over time.
+            Track your reading patterns and time allocation over different types of content.
           </p>
         </div>
 
@@ -114,11 +114,11 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
         </div>
 
         <div className="grid gap-6">
-          {/* Diet Balance Card */}
+          {/* Time Distribution Card */}
           <div className="rounded-2xl border border-zinc-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-base font-semibold text-zinc-900">
-                Diet Balance - Last {timeRange} days
+                Time Distribution - Last {timeRange} days
               </div>
               <div className="text-sm text-zinc-600">
                 Total: {formatReadingTime(currentData.totalMinutes)}
@@ -130,7 +130,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                 <div className="text-3xl font-semibold text-orange-900">
                   {currentData.snackPercent}%
                 </div>
-                <div className="mt-1 text-sm font-medium text-orange-700">Bite-sized</div>
+                <div className="mt-1 text-sm font-medium text-orange-700">⚡ Sprint</div>
                 <div className="mt-2 text-xs text-orange-600">
                   {formatReadingTime(currentData.snackMinutes)}
                 </div>
@@ -139,7 +139,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                 <div className="text-3xl font-semibold text-blue-900">
                   {currentData.mealPercent}%
                 </div>
-                <div className="mt-1 text-sm font-medium text-blue-700">Thoughtful</div>
+                <div className="mt-1 text-sm font-medium text-blue-700">🎯 Session</div>
                 <div className="mt-2 text-xs text-blue-600">
                   {formatReadingTime(currentData.mealMinutes)}
                 </div>
@@ -263,14 +263,14 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
             </div>
             <div className="grid grid-cols-3 gap-6">
               <div>
-                <div className="text-sm text-zinc-600">Bite-sized</div>
+                <div className="text-sm text-zinc-600">⚡ Sprint</div>
                 <div className="mt-2 text-lg font-semibold text-zinc-900">
                   {formatReadingTime(Math.round(currentData.snackMinutes / parseInt(timeRange)))}
                   <span className="text-sm text-zinc-500 font-normal">/day</span>
                 </div>
               </div>
               <div>
-                <div className="text-sm text-zinc-600">Thoughtful</div>
+                <div className="text-sm text-zinc-600">🎯 Session</div>
                 <div className="mt-2 text-lg font-semibold text-zinc-900">
                   {formatReadingTime(Math.round(currentData.mealMinutes / parseInt(timeRange)))}
                   <span className="text-sm text-zinc-500 font-normal">/day</span>

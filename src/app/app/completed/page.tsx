@@ -79,9 +79,9 @@ export default function CompletedPage() {
   const currentData = mockHistory.find((h) => h.period === `${timeRange} days`)?.breakdown || mockHistory[0].breakdown;
 
   const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "Bite-sized";
-    if (macro === "MEAL") return "Thoughtful";
-    return "Time-tested";
+    if (macro === "SNACK") return "⚡ Sprint";
+    if (macro === "MEAL") return "🎯 Session";
+    return "🗺️ Journey";
   };
 
   const formatTime = (minutes: number) => {
@@ -106,7 +106,7 @@ export default function CompletedPage() {
           Completed items
         </h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Track your reading patterns and diet balance over time.
+          Track your reading patterns and time distribution over time.
         </p>
 
         {/* Time range selector */}
@@ -142,7 +142,7 @@ export default function CompletedPage() {
               <div className="text-2xl font-semibold text-orange-900">
                 {currentData.snackPercent}%
               </div>
-              <div className="mt-1 text-xs text-orange-700">Bite-sized</div>
+              <div className="mt-1 text-xs text-orange-700">⚡ Sprint</div>
               <div className="mt-2 text-xs text-orange-600">
                 {formatTime(currentData.snackMinutes)}
               </div>
@@ -151,7 +151,7 @@ export default function CompletedPage() {
               <div className="text-2xl font-semibold text-blue-900">
                 {currentData.mealPercent}%
               </div>
-              <div className="mt-1 text-xs text-blue-700">Thoughtful</div>
+              <div className="mt-1 text-xs text-blue-700">🎯 Session</div>
               <div className="mt-2 text-xs text-blue-600">
                 {formatTime(currentData.mealMinutes)}
               </div>
@@ -185,7 +185,7 @@ export default function CompletedPage() {
               {Math.abs(currentData.snackPercent - 33) < 10 &&
                Math.abs(currentData.mealPercent - 33) < 10 &&
                Math.abs(currentData.timeTestedPercent - 33) < 10 && (
-                "Great balance! Your information diet is well distributed across all content types."
+                "Great balance! Your time investment is well distributed across all content types."
               )}
             </div>
           </div>
@@ -229,14 +229,14 @@ export default function CompletedPage() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <div className="text-xs text-zinc-600">Bite-sized</div>
+              <div className="text-xs text-zinc-600">⚡ Sprint</div>
               <div className="mt-1 text-sm font-medium text-zinc-900">
                 {formatTime(Math.round(currentData.snackMinutes / parseInt(timeRange)))}
                 /day
               </div>
             </div>
             <div>
-              <div className="text-xs text-zinc-600">Thoughtful</div>
+              <div className="text-xs text-zinc-600">🎯 Session</div>
               <div className="mt-1 text-sm font-medium text-zinc-900">
                 {formatTime(Math.round(currentData.mealMinutes / parseInt(timeRange)))}
                 /day

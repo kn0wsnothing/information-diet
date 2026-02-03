@@ -122,19 +122,19 @@ export function DietChart({ data }: { data: DietData }) {
         {snackMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-            <span className="text-zinc-600">Bite-sized {snackPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">⚡ Sprint {snackPercent.toFixed(0)}%</span>
           </div>
         )}
         {mealMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span className="text-zinc-600">Thoughtful {mealPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">🎯 Session {mealPercent.toFixed(0)}%</span>
           </div>
         )}
         {timeTestedMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span className="text-zinc-600">Time-tested {timeTestedPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">🗺️ Journey {timeTestedPercent.toFixed(0)}%</span>
           </div>
         )}
       </div>

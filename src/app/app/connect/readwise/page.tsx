@@ -9,7 +9,13 @@ async function connectReadwise(formData: FormData) {
   if (!user) redirect("/");
 
   const token = String(formData.get("token") ?? "").trim();
-  if (!token) redirect("/app/connect/readwise?error=1");
+  
+  console.log("Readwise connect - Token length:", token.length);
+  
+  if (!token) {
+    console.log("Readwise connect - No token provided");
+    redirect("/app/connect/readwise?error=missing");
+  }
 
   const authRes = await fetch("https://readwise.io/api/v2/auth/", {
     method: "GET",
@@ -20,8 +26,8 @@ async function connectReadwise(formData: FormData) {
   });
 
   if (authRes.status !== 204) {
-    // Keep it simple for MVP: redirect back with a query param.
-    redirect("/app/connect/readwise?error=1");
+    console.log("Readwise connect - Auth failed with status:", authRes.status);
+    redirect("/app/connect/readwise?error=invalid");
   }
 
   const dbUser = await prisma.user.upsert({
@@ -51,7 +57,8 @@ async function connectReadwise(formData: FormData) {
     });
   }
 
-  redirect("/app");
+  console.log("Readwise connect - Successfully saved token");
+  redirect("/app/settings?connected=true");
 }
 
 export default async function ConnectReadwisePage({

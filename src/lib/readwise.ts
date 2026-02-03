@@ -14,29 +14,54 @@ export type ReadwiseDocument = {
   last_moved_at: string | null;
 };
 
-function parseReadingMinutes(readingTime: string | null): number | null {
+export function parseReadingTime(readingTime: string | null): number | null {
   if (!readingTime) return null;
-  const match = readingTime.match(/(\d+)\s*min/i);
-  if (!match) return null;
-  const n = Number(match[1]);
-  return Number.isFinite(n) ? n : null;
+  
+  // Try to parse hours first (e.g., "8 hours", "1.5 hours", "8h")
+  const hoursMatch = readingTime.match(/(\d+(?:\.\d+)?)\s*(?:hour|hr|h)(?:s)?/i);
+  if (hoursMatch) {
+    const hours = Number(hoursMatch[1]);
+    return Number.isFinite(hours) ? Math.round(hours * 60) : null;
+  }
+  
+  // Parse minutes (e.g., "45 min", "45 minutes")
+  const minMatch = readingTime.match(/(\d+)\s*(?:min|minute)(?:s)?/i);
+  if (minMatch) {
+    const mins = Number(minMatch[1]);
+    return Number.isFinite(mins) ? mins : null;
+  }
+  
+  // Try to parse "HH:MM" format (e.g., "8:30")
+  const timeMatch = readingTime.match(/(\d+):(\d+)/);
+  if (timeMatch) {
+    const hours = Number(timeMatch[1]);
+    const mins = Number(timeMatch[2]);
+    return Number.isFinite(hours) && Number.isFinite(mins) ? (hours * 60 + mins) : null;
+  }
+  
+  return null;
 }
+
+import { ContentType, mapMacroToContentType } from "./content-types";
 
 export function inferMacroFromReadwise(doc: ReadwiseDocument): "SNACK" | "MEAL" | "TIME_TESTED" {
   const category = (doc.category ?? "").toLowerCase();
-  const minutes = parseReadingMinutes(doc.reading_time);
+  const minutes = parseReadingTime(doc.reading_time);
   const words = doc.word_count ?? null;
 
-  if (["tweet", "video"].includes(category)) return "SNACK";
-
-  if (["epub", "pdf"].includes(category)) return "TIME_TESTED";
-
+  // Check duration first for all content types (including videos)
   if (minutes !== null) {
     if (minutes <= 6) return "SNACK";
     if (minutes >= 45) return "TIME_TESTED";
     return "MEAL";
   }
 
+  // Category-based inference when no time data
+  if (category === "tweet") return "SNACK";
+  
+  if (["epub", "pdf"].includes(category)) return "TIME_TESTED";
+
+  // Word count fallback
   if (words !== null) {
     if (words <= 900) return "SNACK";
     if (words >= 12000) return "TIME_TESTED";
@@ -44,6 +69,14 @@ export function inferMacroFromReadwise(doc: ReadwiseDocument): "SNACK" | "MEAL" 
   }
 
   return "MEAL";
+}
+
+/**
+ * Infer content type (new framework) from Readwise document
+ */
+export function inferContentTypeFromReadwise(doc: ReadwiseDocument): ContentType {
+  const macro = inferMacroFromReadwise(doc);
+  return mapMacroToContentType(macro);
 }
 
 async function fetchWithRetry(

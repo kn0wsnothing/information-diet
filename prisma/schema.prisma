@@ -21,6 +21,12 @@ enum MacroType {
   TIME_TESTED
 }
 
+enum ContentType {
+  SPRINT    // 2-5 min quick reads
+  SESSION   // 15-45 min focused reads
+  JOURNEY   // Hours/days deep reading
+}
+
 enum ItemStatus {
   QUEUED
   READING
@@ -38,6 +44,11 @@ model User {
   clerkId   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Onboarding tracking
+  onboardingCompleted Boolean @default(false)
+  onboardingStep      Int?    @default(0)
+  onboardingSkipped   Boolean @default(false)
 
   sources   Source[]
   items     Item[]
@@ -76,8 +87,9 @@ model Item {
   author    String?
   publishedDate DateTime?
 
-  macro     MacroType
-  status    ItemStatus @default(QUEUED)
+  macro       MacroType     // @deprecated - use contentType instead
+  contentType ContentType?  // New time investment type
+  status      ItemStatus @default(QUEUED)
 
   readwiseDocumentId String?
   readwiseLocation   String?

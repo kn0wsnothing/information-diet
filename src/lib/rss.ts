@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import { estimateWordCountFromHtml, estimateTimeFromWords } from './time-estimation';
+import { categorizeByWordCount, ContentType } from './content-types';
 
 export type RSSFeed = {
   title: string;

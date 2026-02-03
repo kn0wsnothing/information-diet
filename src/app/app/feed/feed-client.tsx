@@ -6,6 +6,7 @@ import { MarkDoneButton } from "../mark-done-button";
 import { RecategorizeButton } from "../recategorize-button";
 import { RemoveButton } from "../remove-button";
 import { SearchFilterBar } from "../search-filter-bar";
+import { getItemOpenUrl, isReadwiseItem } from "@/lib/readwise-url";
 
 interface Item {
   id: string;
@@ -13,6 +14,7 @@ interface Item {
   url: string | null;
   macro: string;
   createdAt: Date;
+  readwiseDocumentId?: string | null;
   currentPage: number | null;
   totalPages: number | null;
   timeSpentMinutes: number | null;
@@ -61,9 +63,9 @@ export function FeedClient({
   });
 
   const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "Bite-sized";
-    if (macro === "MEAL") return "Thoughtful";
-    return "Time-tested";
+    if (macro === "SNACK") return "⚡ Sprint";
+    if (macro === "MEAL") return "🎯 Session";
+    return "🗺️ Journey";
   };
 
   return (
@@ -130,14 +132,14 @@ export function FeedClient({
                       markAction={markItemDone}
                     />
                   </div>
-                  {item.url ? (
+                  {(item.url || item.readwiseDocumentId) ? (
                     <a
-                      href={item.url}
+                      href={getItemOpenUrl(item) || "#"}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-2 inline-block text-sm text-zinc-700 underline"
                     >
-                      Open
+                      {isReadwiseItem(item) ? "Open in Readwise" : "Open"}
                     </a>
                   ) : null}
                 </div>

@@ -16,9 +16,9 @@ export function RecategorizeButton({
   const [isPending, startTransition] = useTransition();
 
   const categories = [
-    { value: "SNACK", label: "Bite-sized" },
-    { value: "MEAL", label: "Thoughtful" },
-    { value: "TIME_TESTED", label: "Time-tested" },
+    { value: "SNACK", label: "⚡ Sprint" },
+    { value: "MEAL", label: "🎯 Session" },
+    { value: "TIME_TESTED", label: "🗺️ Journey" },
   ];
 
   const handleRecategorize = (newMacro: string) => {

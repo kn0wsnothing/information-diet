@@ -291,15 +291,15 @@ export default function AddPage({
           <h2 className="text-sm font-medium text-zinc-900">Content types</h2>
           <div className="mt-4 space-y-3 text-sm text-zinc-600">
             <div>
-              <div className="font-medium text-zinc-900">Bite-sized</div>
+              <div className="font-medium text-zinc-900">⚡ Sprint</div>
               <p>Quick reads: tweets, short articles, news snippets (2-5 min)</p>
             </div>
             <div>
-              <div className="font-medium text-zinc-900">Thoughtful</div>
+              <div className="font-medium text-zinc-900">🎯 Session</div>
               <p>Essays, newsletters, long-form articles (15-45 min)</p>
             </div>
             <div>
-              <div className="font-medium text-zinc-900">Time-tested</div>
+              <div className="font-medium text-zinc-900">🗺️ Journey</div>
               <p>Books, research papers, deep dives (hours or days)</p>
             </div>
           </div>

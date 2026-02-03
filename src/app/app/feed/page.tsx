@@ -30,6 +30,7 @@ export default async function FeedPage() {
       totalPages: true,
       timeSpentMinutes: true,
       estimatedMinutes: true,
+      readwiseDocumentId: true,
     },
   });
 

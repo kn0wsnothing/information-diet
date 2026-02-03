@@ -42,6 +42,34 @@ async function markItemDone(itemId: string, timeSpentMinutes: number, finished?:
   revalidatePath("/app");
 }
 
+async function updateProgress(itemId: string, currentPage: number, timeSpentMinutes: number) {
+  "use server";
+
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
+  const dbUser = await prisma.user.upsert({
+    where: { clerkId: user.id },
+    update: {},
+    create: { clerkId: user.id },
+  });
+
+  await prisma.item.update({
+    where: { 
+      id: itemId,
+      userId: dbUser.id,
+    },
+    data: {
+      currentPage,
+      timeSpentMinutes: { increment: Math.max(0, timeSpentMinutes) },
+      lastReadAt: new Date(),
+    },
+  });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/app");
+}
+
 async function recategorizeItem(itemId: string, newMacro: string) {
   "use server";
 
@@ -87,7 +115,12 @@ export default async function AppHomePage() {
   const dbUser = await prisma.user.upsert({
     where: { clerkId: user.id },
     update: {},
-    create: { clerkId: user.id },
+    create: { 
+      clerkId: user.id,
+      onboardingCompleted: false,
+      onboardingStep: 0,
+      onboardingSkipped: false,
+    },
   });
 
   const readwiseSource = await prisma.source.findFirst({
@@ -108,6 +141,7 @@ export default async function AppHomePage() {
       timeSpentMinutes: true,
       estimatedMinutes: true,
       coverUrl: true,
+      readwiseDocumentId: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -165,41 +199,41 @@ export default async function AppHomePage() {
   const timeTestedPercent = totalTime > 0 ? (timeTestedTime / totalTime) * 100 : 0;
 
   let suggestedMacro: "SNACK" | "MEAL" | "TIME_TESTED" = "MEAL";
-  let suggestion = "Try a thoughtful read next.";
+  let suggestion = "Try a focused Session next.";
 
   if (totalTime === 0) {
     suggestedMacro = "SNACK";
-    suggestion = "Start with a quick bite-sized read.";
+    suggestion = "Start with a quick Sprint.";
   } else if (snackPercent > 60) {
-    // Too many snacks - suggest thoughtful or time-tested
+    // Too many Sprints - suggest Session or Journey
     suggestedMacro = timeTestedPercent < 30 ? "TIME_TESTED" : "MEAL";
     suggestion = timeTestedPercent < 30 
-      ? "You've been snacking a lot. Time for something deeper."
-      : "You've been snacking a lot. Try a thoughtful read.";
+      ? "You've been doing a lot of quick Sprints. Time for a deeper Journey."
+      : "You've been doing a lot of quick Sprints. Try a focused Session.";
   } else if (mealPercent > 60) {
-    // Too many meals - suggest bite-sized or time-tested
+    // Too many Sessions - suggest Sprint or Journey
     suggestedMacro = timeTestedPercent < 30 ? "TIME_TESTED" : "SNACK";
     suggestion = timeTestedPercent < 30
-      ? "You've had plenty of thoughtful reads. Try something time-tested."
-      : "You've had plenty of thoughtful reads. Grab something quick.";
+      ? "You've had plenty of focused Sessions. Try a deep Journey."
+      : "You've had plenty of focused Sessions. Grab a quick Sprint.";
   } else if (timeTestedPercent > 60) {
-    // Too many time-tested - suggest bite-sized or thoughtful
+    // Too many Journeys - suggest Sprint or Session
     suggestedMacro = snackPercent < 20 ? "SNACK" : "MEAL";
     suggestion = snackPercent < 20
-      ? "You've been deep in books. Grab a quick read for variety."
-      : "You've been deep in books. Try a thoughtful read.";
+      ? "You've been deep in Journeys. Grab a quick Sprint for variety."
+      : "You've been deep in Journeys. Try a focused Session.";
   } else if (snackPercent < 20) {
-    // Need more snacks
+    // Need more Sprints
     suggestedMacro = "SNACK";
-    suggestion = "Add some variety with a quick bite-sized read.";
+    suggestion = "Add some variety with a quick Sprint.";
   } else if (mealPercent < 20) {
-    // Need more meals
+    // Need more Sessions
     suggestedMacro = "MEAL";
-    suggestion = "Balance your diet with a thoughtful read.";
+    suggestion = "Balance your reading with a focused Session.";
   } else if (timeTestedPercent < 20) {
-    // Need more time-tested
+    // Need more Journeys
     suggestedMacro = "TIME_TESTED";
-    suggestion = "Make room for something time-tested.";
+    suggestion = "Make room for a deep Journey.";
   }
 
   const suggestedItems = allQueued
@@ -220,6 +254,9 @@ export default async function AppHomePage() {
     },
     readwiseConnected: !!readwiseSource?.readwiseToken,
     userEmail: user.emailAddresses?.[0]?.emailAddress || "",
+    // Onboarding state
+    showOnboarding: !dbUser.onboardingCompleted && !dbUser.onboardingSkipped,
+    onboardingStep: dbUser.onboardingStep || 0,
   };
 
   return (

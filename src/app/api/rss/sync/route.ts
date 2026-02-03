@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { parseRSSFeed, inferMacroFromRSSItem, extractArticleMetadata } from "@/lib/rss";
+import { mapMacroToContentType } from "@/lib/content-types";
 
 const BodySchema = z.object({
   feedId: z.string().optional(),
@@ -60,6 +61,7 @@ export async function POST(req: Request) {
         feedData.items.map(async (item) => {
           const metadata = extractArticleMetadata(item);
           const macro = inferMacroFromRSSItem(item, feedData.title);
+          const contentType = mapMacroToContentType(macro);
 
           // Check if item already exists
           const existing = await prisma.item.findFirst({
@@ -81,6 +83,7 @@ export async function POST(req: Request) {
             author: metadata.author,
             publishedDate: metadata.publishedDate,
             macro: macro,
+            contentType: contentType,
             status: "QUEUED" as const,
             readwiseDocumentId: null,
             readwiseLocation: null,
