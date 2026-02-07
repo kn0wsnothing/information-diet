@@ -6,10 +6,11 @@ import { syncReadwise } from "./actions";
 import { prisma } from "@/lib/prisma";
 
 export default async function SettingsPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { synced?: string; error?: string };
+  searchParams: Promise<{ synced?: string; error?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const user = await currentUser();
   if (!user) redirect("/sign-in");
 
@@ -30,7 +31,10 @@ export default async function SettingsPage({
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto max-w-3xl px-6 py-12">
         <div className="mb-8">
-          <Link href="/app" className="text-sm text-zinc-600 hover:text-zinc-900">
+          <Link
+            href="/app"
+            className="text-sm text-zinc-600 hover:text-zinc-900"
+          >
             ← Back to dashboard
           </Link>
         </div>
@@ -45,7 +49,8 @@ export default async function SettingsPage({
         {/* Success/Error Messages */}
         {searchParams.synced && (
           <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            ✓ Synced {searchParams.synced} item{searchParams.synced !== "1" ? "s" : ""} from Readwise
+            ✓ Synced {searchParams.synced} item
+            {searchParams.synced !== "1" ? "s" : ""} from Readwise
           </div>
         )}
         {searchParams.error === "sync-failed" && (
@@ -61,12 +66,16 @@ export default async function SettingsPage({
 
         <div className="mt-8 space-y-6">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-            <h2 className="text-sm font-medium text-zinc-900">Getting Started</h2>
+            <h2 className="text-sm font-medium text-zinc-900">
+              Getting Started
+            </h2>
             <div className="mt-4">
-              <form action={async () => {
-                "use server";
-                await restartOnboarding();
-              }}>
+              <form
+                action={async () => {
+                  "use server";
+                  await restartOnboarding();
+                }}
+              >
                 <button
                   type="submit"
                   className="text-sm text-zinc-600 hover:text-zinc-900"
@@ -81,13 +90,17 @@ export default async function SettingsPage({
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-            <h2 className="text-sm font-medium text-zinc-900 mb-4">Connections</h2>
-            
+            <h2 className="text-sm font-medium text-zinc-900 mb-4">
+              Connections
+            </h2>
+
             {/* Readwise */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-zinc-900">Readwise Reader</div>
+                  <div className="text-sm font-medium text-zinc-900">
+                    Readwise Reader
+                  </div>
                   {readwiseSource && readwiseSource.readwiseToken ? (
                     <div className="text-xs text-green-600 mt-1">
                       ✓ Connected
@@ -153,7 +166,9 @@ export default async function SettingsPage({
             <h2 className="text-sm font-medium text-zinc-900">Account</h2>
             <div className="mt-4 space-y-3 text-sm text-zinc-600">
               <div>Email: {user.emailAddresses?.[0]?.emailAddress}</div>
-              <div className="text-zinc-400">Account settings (coming soon)</div>
+              <div className="text-zinc-400">
+                Account settings (coming soon)
+              </div>
             </div>
           </div>
         </div>

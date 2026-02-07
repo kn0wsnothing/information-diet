@@ -9,9 +9,9 @@ async function connectReadwise(formData: FormData) {
   if (!user) redirect("/");
 
   const token = String(formData.get("token") ?? "").trim();
-  
+
   console.log("Readwise connect - Token length:", token.length);
-  
+
   if (!token) {
     console.log("Readwise connect - No token provided");
     redirect("/app/connect/readwise?error=missing");
@@ -57,15 +57,27 @@ async function connectReadwise(formData: FormData) {
     });
   }
 
-  console.log("Readwise connect - Successfully saved token");
-  redirect("/app/settings?connected=true");
+  // Mark onboarding as complete now that Readwise is connected
+  await prisma.user.update({
+    where: { id: dbUser.id },
+    data: {
+      onboardingCompleted: true,
+      onboardingSkipped: false,
+    },
+  });
+
+  console.log(
+    "Readwise connect - Successfully saved token and completed onboarding",
+  );
+  redirect("/app");
 }
 
 export default async function ConnectReadwisePage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const user = await currentUser();
   if (!user) redirect("/");
 
@@ -76,8 +88,8 @@ export default async function ConnectReadwisePage({
           Connect Readwise Reader
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Paste your Readwise Reader access token. We’ll use it to sync your reading list and
-          track what you’ve finished.
+          Paste your Readwise Reader access token. We’ll use it to sync your
+          reading list and track what you’ve finished.
         </p>
 
         {searchParams.error ? (
@@ -88,7 +100,10 @@ export default async function ConnectReadwisePage({
 
         <form action={connectReadwise} className="mt-8 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-900" htmlFor="token">
+            <label
+              className="block text-sm font-medium text-zinc-900"
+              htmlFor="token"
+            >
               Readwise token
             </label>
             <input
