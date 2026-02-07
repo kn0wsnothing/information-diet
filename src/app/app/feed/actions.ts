@@ -42,18 +42,18 @@ export async function markItemDone(itemId: string, timeSpentMinutes: number, fin
   revalidatePath("/app");
 }
 
-export async function recategorizeItem(itemId: string, newMacro: string) {
+export async function recategorizeItem(itemId: string, newContentType: string) {
   const user = await currentUser();
   if (!user) redirect("/sign-in");
 
-  if (!["SNACK", "MEAL", "TIME_TESTED"].includes(newMacro)) {
+  if (!["SPRINT", "SESSION", "JOURNEY"].includes(newContentType)) {
     return;
   }
 
   await prisma.item.update({
     where: { id: itemId },
     data: {
-      macro: newMacro as "SNACK" | "MEAL" | "TIME_TESTED",
+      contentType: newContentType as "SPRINT" | "SESSION" | "JOURNEY",
     },
   });
 

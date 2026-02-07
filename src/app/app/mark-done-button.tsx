@@ -6,7 +6,7 @@ import { MarkDoneModal } from "./mark-done-modal";
 export function MarkDoneButton({
   itemId,
   itemTitle,
-  macro,
+  contentType,
   currentPage,
   totalPages,
   currentTimeSpent,
@@ -15,7 +15,7 @@ export function MarkDoneButton({
 }: {
   itemId: string;
   itemTitle: string;
-  macro: string;
+  contentType: string;
   currentPage?: number;
   totalPages?: number;
   currentTimeSpent?: number;
@@ -37,7 +37,7 @@ export function MarkDoneButton({
         <MarkDoneModal
           itemId={itemId}
           itemTitle={itemTitle}
-          macro={macro}
+          contentType={contentType}
           currentPage={currentPage}
           totalPages={totalPages}
           currentTimeSpent={currentTimeSpent}

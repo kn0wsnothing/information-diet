@@ -132,10 +132,10 @@ export function categorizeByUrl(url: string): ContentType {
 }
 
 /**
- * Get label for UI display (replaces old macro labels)
+ * Get label for UI display
  */
-export function getContentTypeLabel(type: ContentType): string {
-  return CONTENT_TYPES[type].label;
+export function getContentTypeLabel(type: string | ContentType): string {
+  return CONTENT_TYPES[type as ContentType]?.label || CONTENT_TYPES.SESSION.label;
 }
 
 /**
@@ -150,16 +150,4 @@ export function getContentTypeIcon(type: ContentType): string {
  */
 export function getContentTypeLabelWithIcon(type: ContentType): string {
   return `${CONTENT_TYPES[type].icon} ${CONTENT_TYPES[type].label}`;
-}
-
-/**
- * Map old macro type to new label (for backward compatibility)
- */
-export function getMacroLabel(macro: string): string {
-  const map: Record<string, string> = {
-    SNACK: "⚡ Sprint",
-    MEAL: "🎯 Session",
-    TIME_TESTED: "🗺️ Journey",
-  };
-  return map[macro] || "🎯 Session";
 }

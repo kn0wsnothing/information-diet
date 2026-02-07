@@ -72,6 +72,7 @@ export async function logReadingSession(formData: FormData) {
 
   // Update item
   const updateData: any = {
+    status: "READING", // Mark as in-progress when logging any session
     timeSpentMinutes: { increment: minutesSpent },
     lastReadAt: now,
     readingStreak: readingStreak,

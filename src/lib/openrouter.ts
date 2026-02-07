@@ -22,7 +22,7 @@ export async function generateCompletion(
   options: CompletionOptions = {},
 ): Promise<CompletionResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || "google/gemini-flash-1.5";
+  const model = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY environment variable not set");

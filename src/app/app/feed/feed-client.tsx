@@ -12,7 +12,7 @@ interface Item {
   id: string;
   title: string;
   url: string | null;
-  macro: string;
+  contentType: string;
   createdAt: Date;
   readwiseDocumentId?: string | null;
   currentPage: number | null;
@@ -24,7 +24,7 @@ interface Item {
 interface FeedClientProps {
   allQueued: Item[];
   markItemDone: (itemId: string, timeSpent: number, finished?: boolean) => Promise<void>;
-  recategorizeItem: (itemId: string, newMacro: string) => Promise<void>;
+  recategorizeItem: (itemId: string, newContentType: string) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
 }
 
@@ -58,13 +58,13 @@ export function FeedClient({
   const filteredItems = allQueued.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         (item.url && item.url.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesFilter = filter === "all" || item.macro === filter;
+    const matchesFilter = filter === "all" || item.contentType === filter;
     return matchesSearch && matchesFilter;
   });
 
-  const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "⚡ Sprint";
-    if (macro === "MEAL") return "🎯 Session";
+  const getContentTypeLabel = (contentType: string) => {
+    if (contentType === "SPRINT") return "⚡ Sprint";
+    if (contentType === "SESSION") return "🎯 Session";
     return "🗺️ Journey";
   };
 
@@ -108,11 +108,11 @@ export function FeedClient({
                       <div className="text-sm font-medium text-zinc-900">{item.title}</div>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-xs text-zinc-600">
-                          {getMacroLabel(item.macro)}
+                          {getContentTypeLabel(item.contentType)}
                         </span>
                         <RecategorizeButton
                           itemId={item.id}
-                          currentMacro={item.macro}
+                          currentContentType={item.contentType}
                           recategorizeAction={recategorizeItem}
                         />
                         <RemoveButton
@@ -124,7 +124,7 @@ export function FeedClient({
                     <MarkDoneButton
                       itemId={item.id}
                       itemTitle={item.title}
-                      macro={item.macro}
+                      contentType={item.contentType}
                       currentPage={item.currentPage || 0}
                       totalPages={item.totalPages || undefined}
                       currentTimeSpent={item.timeSpentMinutes || 0}

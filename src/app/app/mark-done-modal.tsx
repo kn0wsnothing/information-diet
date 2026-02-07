@@ -6,7 +6,7 @@ import { estimateTimeFromPages, formatReadingTime } from "@/lib/time-estimation"
 export function MarkDoneModal({
   itemId,
   itemTitle,
-  macro,
+  contentType,
   currentPage,
   totalPages,
   currentTimeSpent,
@@ -16,7 +16,7 @@ export function MarkDoneModal({
 }: {
   itemId: string;
   itemTitle: string;
-  macro: string;
+  contentType: string;
   currentPage?: number;
   totalPages?: number;
   currentTimeSpent?: number;
@@ -24,7 +24,7 @@ export function MarkDoneModal({
   markAction: (id: string, timeSpent: number, finished?: boolean) => Promise<void>;
   onClose: () => void;
 }) {
-  const isBook = macro === "TIME_TESTED" && totalPages && totalPages > 0;
+  const isBook = contentType === "JOURNEY" && totalPages && totalPages > 0;
   const hasProgress = currentPage && currentPage > 0;
   
   // For books with progress, default to "finished" option
@@ -40,8 +40,8 @@ export function MarkDoneModal({
       return remainingTime;
     }
     if (estimatedMinutes) return estimatedMinutes;
-    if (macro === "SNACK") return 3;
-    if (macro === "MEAL") return 25;
+    if (contentType === "SPRINT") return 3;
+    if (contentType === "SESSION") return 25;
     return 60;
   };
 
@@ -133,9 +133,9 @@ export function MarkDoneModal({
                 className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900"
               />
               <p className="mt-2 text-xs text-zinc-500">
-                {!isBook && macro === "SNACK"
+                {!isBook && contentType === "SPRINT"
                   ? "Typical: 2-5 minutes"
-                  : !isBook && macro === "MEAL"
+                  : !isBook && contentType === "SESSION"
                     ? "Typical: 15-45 minutes"
                     : estimatedMinutes
                       ? `Estimated: ${formatReadingTime(estimatedMinutes)}`

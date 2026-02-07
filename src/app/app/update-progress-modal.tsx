@@ -22,13 +22,15 @@ export function UpdateProgressModal({
   updateAction,
   onClose,
 }: UpdateProgressModalProps) {
+  const hasPages = totalPages && totalPages > 0;
+  
   // If user hasn't started (page 0), default to absolute mode so they can set starting page
   const [progressMode, setProgressMode] = useState<"absolute" | "incremental">(
-    currentPage === 0 ? "absolute" : "incremental"
+    hasPages && currentPage === 0 ? "absolute" : "incremental"
   );
-  const [absolutePage, setAbsolutePage] = useState(currentPage === 0 ? 1 : currentPage);
-  const [pagesRead, setPagesRead] = useState(10);
-  const [minutesSpent, setMinutesSpent] = useState(0); // Default to 0, user can add time if they want
+  const [absolutePage, setAbsolutePage] = useState(hasPages && currentPage === 0 ? 1 : currentPage);
+  const [pagesRead, setPagesRead] = useState(hasPages ? 10 : 0);
+  const [minutesSpent, setMinutesSpent] = useState(0);
   const [showTimeCorrection, setShowTimeCorrection] = useState(false);
   const [correctedTotalTime, setCorrectedTotalTime] = useState(currentTimeSpent);
   const [isPending, startTransition] = useTransition();
@@ -68,33 +70,34 @@ export function UpdateProgressModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-        <h2 className="text-lg font-semibold text-zinc-900">Update Progress</h2>
+        <h2 className="text-lg font-semibold text-zinc-900">{hasPages ? "Update Progress" : "Log Reading Session"}</h2>
         <p className="mt-1 text-sm text-zinc-600">{itemTitle}</p>
 
         <div className="mt-6 space-y-5">
-          {/* Progress Mode Selection */}
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="progressMode"
-                checked={progressMode === "absolute"}
-                onChange={() => setProgressMode("absolute")}
-                className="mt-0.5"
-              />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-zinc-900">
-                  {currentPage === 0 ? "I'm starting on page" : "Set current page to"}
-                </div>
+          {/* Progress Mode Selection - Only for items with pages */}
+          {hasPages && (
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input
-                  type="number"
-                  min={0}
-                  max={totalPages}
-                  value={absolutePage}
-                  onChange={(e) => setAbsolutePage(Math.min(totalPages, Math.max(0, parseInt(e.target.value) || 0)))}
-                  disabled={progressMode !== "absolute"}
-                  className="mt-1 w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 disabled:bg-zinc-50 disabled:text-zinc-400"
+                  type="radio"
+                  name="progressMode"
+                  checked={progressMode === "absolute"}
+                  onChange={() => setProgressMode("absolute")}
+                  className="mt-0.5"
                 />
+                <div className="flex-1">
+                    <div className="text-sm font-medium text-zinc-900">
+                      {currentPage === 0 ? "I'm starting on page" : "Set current page to"}
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={totalPages}
+                      value={absolutePage}
+                      onChange={(e) => setAbsolutePage(Math.min(totalPages, Math.max(0, parseInt(e.target.value) || 0)))}
+                      disabled={progressMode !== "absolute"}
+                      className="mt-1 w-32 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 disabled:bg-zinc-50 disabled:text-zinc-400"
+                    />
                 <span className="ml-2 text-sm text-zinc-500">/ {totalPages}</span>
                 {currentPage === 0 && progressMode === "absolute" && (
                   <p className="mt-1 text-xs text-zinc-500">
@@ -141,12 +144,13 @@ export function UpdateProgressModal({
               </div>
             </label>
           </div>
+          )}
 
           {/* Time Spent */}
           <div>
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-zinc-900">
-                Time spent reading (optional)
+                Time spent reading
               </label>
               {currentTimeSpent > 0 && (
                 <button
@@ -180,7 +184,9 @@ export function UpdateProgressModal({
             ) : (
               <>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Only add time if you actually read. Leave at 0 if just updating position.
+                  {hasPages 
+                    ? "Only add time if you actually read. Leave at 0 if just updating position."
+                    : "How long did you spend reading this? Even 5 minutes counts!"}
                 </p>
                 <input
                   type="number"
@@ -223,23 +229,39 @@ export function UpdateProgressModal({
 
           {/* Progress Summary */}
           <div className="rounded-lg bg-zinc-50 p-4 space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-zinc-600">
-                {progressMode === "absolute" && absolutePage < currentPage 
-                  ? "Corrected position" 
-                  : "New position"}
-              </span>
-              <span className="font-medium text-zinc-900">
-                {estimatedNewPage} / {totalPages} ({progress}%)
-              </span>
-            </div>
-            {progressMode === "absolute" && absolutePage !== currentPage && (
-              <div className="flex items-center justify-between text-xs text-zinc-500">
-                <span>Change</span>
-                <span>
-                  {currentPage} → {absolutePage} 
-                  ({absolutePage > currentPage ? '+' : ''}{absolutePage - currentPage} pages)
-                </span>
+            {hasPages ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-600">
+                    {progressMode === "absolute" && absolutePage < currentPage 
+                      ? "Corrected position" 
+                      : "New position"}
+                  </span>
+                  <span className="font-medium text-zinc-900">
+                    {estimatedNewPage} / {totalPages} ({progress}%)
+                  </span>
+                </div>
+                {progressMode === "absolute" && absolutePage !== currentPage && (
+                  <div className="flex items-center justify-between text-xs text-zinc-500">
+                    <span>Change</span>
+                    <span>
+                      {currentPage} → {absolutePage} 
+                      ({absolutePage > currentPage ? '+' : ''}{absolutePage - currentPage} pages)
+                    </span>
+                  </div>
+                )}
+                <div className="mt-2 h-2 bg-zinc-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-zinc-900 transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-zinc-600">
+                {showTimeCorrection 
+                  ? `Correcting total time: ${formatReadingTime(correctedTotalTime)}`
+                  : `New total: ${formatReadingTime(estimatedTotalTime)}`}
               </div>
             )}
             <div className="flex items-center justify-between text-sm">
@@ -247,12 +269,6 @@ export function UpdateProgressModal({
               <span className="font-medium text-zinc-900">
                 {formatReadingTime(estimatedTotalTime)}
               </span>
-            </div>
-            <div className="mt-2 h-2 bg-zinc-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-zinc-900 transition-all"
-                style={{ width: `${progress}%` }}
-              />
             </div>
           </div>
 

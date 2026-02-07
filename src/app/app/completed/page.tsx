@@ -8,19 +8,19 @@ interface CompletedItem {
   id: string;
   title: string;
   url: string | null;
-  macro: "SNACK" | "MEAL" | "TIME_TESTED";
+  contentType: "SPRINT" | "SESSION" | "JOURNEY";
   completedAt: Date | null;
   timeSpentMinutes: number | null;
 }
 
 interface DietBreakdown {
-  snackMinutes: number;
-  mealMinutes: number;
-  timeTestedMinutes: number;
+  sprintMinutes: number;
+  sessionMinutes: number;
+  journeyMinutes: number;
   totalMinutes: number;
-  snackPercent: number;
-  mealPercent: number;
-  timeTestedPercent: number;
+  sprintPercent: number;
+  sessionPercent: number;
+  journeyPercent: number;
 }
 
 interface DietHistory {
@@ -38,39 +38,39 @@ export default function CompletedPage() {
     {
       period: "7 days",
       breakdown: {
-        snackMinutes: 45,
-        mealMinutes: 90,
-        timeTestedMinutes: 135,
+        sprintMinutes: 45,
+        sessionMinutes: 90,
+        journeyMinutes: 135,
         totalMinutes: 270,
-        snackPercent: 17,
-        mealPercent: 33,
-        timeTestedPercent: 50,
+        sprintPercent: 17,
+        sessionPercent: 33,
+        journeyPercent: 50,
       },
       items: [],
     },
     {
       period: "14 days",
       breakdown: {
-        snackMinutes: 90,
-        mealMinutes: 180,
-        timeTestedMinutes: 270,
+        sprintMinutes: 90,
+        sessionMinutes: 180,
+        journeyMinutes: 270,
         totalMinutes: 540,
-        snackPercent: 17,
-        mealPercent: 33,
-        timeTestedPercent: 50,
+        sprintPercent: 17,
+        sessionPercent: 33,
+        journeyPercent: 50,
       },
       items: [],
     },
     {
       period: "21 days",
       breakdown: {
-        snackMinutes: 135,
-        mealMinutes: 270,
-        timeTestedMinutes: 405,
+        sprintMinutes: 135,
+        sessionMinutes: 270,
+        journeyMinutes: 405,
         totalMinutes: 810,
-        snackPercent: 17,
-        mealPercent: 33,
-        timeTestedPercent: 50,
+        sprintPercent: 17,
+        sessionPercent: 33,
+        journeyPercent: 50,
       },
       items: [],
     },
@@ -78,9 +78,9 @@ export default function CompletedPage() {
 
   const currentData = mockHistory.find((h) => h.period === `${timeRange} days`)?.breakdown || mockHistory[0].breakdown;
 
-  const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "⚡ Sprint";
-    if (macro === "MEAL") return "🎯 Session";
+  const getContentTypeLabel = (contentType: string) => {
+    if (contentType === "SPRINT") return "⚡ Sprint";
+    if (contentType === "SESSION") return "🎯 Session";
     return "🗺️ Journey";
   };
 
@@ -140,29 +140,29 @@ export default function CompletedPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-xl bg-orange-50 border border-orange-100 p-4">
               <div className="text-2xl font-semibold text-orange-900">
-                {currentData.snackPercent}%
+                {currentData.sprintPercent}%
               </div>
               <div className="mt-1 text-xs text-orange-700">⚡ Sprint</div>
               <div className="mt-2 text-xs text-orange-600">
-                {formatTime(currentData.snackMinutes)}
+                {formatTime(currentData.sprintMinutes)}
               </div>
             </div>
             <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
               <div className="text-2xl font-semibold text-blue-900">
-                {currentData.mealPercent}%
+                {currentData.sessionPercent}%
               </div>
               <div className="mt-1 text-xs text-blue-700">🎯 Session</div>
               <div className="mt-2 text-xs text-blue-600">
-                {formatTime(currentData.mealMinutes)}
+                {formatTime(currentData.sessionMinutes)}
               </div>
             </div>
             <div className="rounded-xl bg-green-50 border border-green-100 p-4">
               <div className="text-2xl font-semibold text-green-900">
-                {currentData.timeTestedPercent}%
+                {currentData.journeyPercent}%
               </div>
-              <div className="mt-1 text-xs text-green-700">Time-tested</div>
+              <div className="mt-1 text-xs text-green-700">🗺️ Journey</div>
               <div className="mt-2 text-xs text-green-600">
-                {formatTime(currentData.timeTestedMinutes)}
+                {formatTime(currentData.journeyMinutes)}
               </div>
             </div>
           </div>
@@ -173,18 +173,18 @@ export default function CompletedPage() {
               Recommendation
             </div>
             <div className="text-sm text-zinc-700">
-              {currentData.snackPercent > 50 && (
+              {currentData.sprintPercent > 50 && (
                 "You've been snacking a lot. Consider adding more thoughtful reads or time-tested books to your diet."
               )}
-              {currentData.mealPercent > 50 && currentData.timeTestedPercent < 20 && (
+              {currentData.sessionPercent > 50 && currentData.journeyPercent < 20 && (
                 "You have a solid diet of thoughtful reads. Try to make room for more time-tested content."
               )}
-              {currentData.timeTestedPercent > 60 && (
+              {currentData.journeyPercent > 60 && (
                 "You're reading a lot of books! Consider adding some variety with shorter content."
               )}
-              {Math.abs(currentData.snackPercent - 33) < 10 &&
-               Math.abs(currentData.mealPercent - 33) < 10 &&
-               Math.abs(currentData.timeTestedPercent - 33) < 10 && (
+              {Math.abs(currentData.sprintPercent - 33) < 10 &&
+               Math.abs(currentData.sessionPercent - 33) < 10 &&
+               Math.abs(currentData.journeyPercent - 33) < 10 && (
                 "Great balance! Your time investment is well distributed across all content types."
               )}
             </div>
@@ -203,15 +203,15 @@ export default function CompletedPage() {
                 <div className="flex-1 h-8 bg-zinc-100 rounded overflow-hidden flex">
                   <div
                     className="bg-orange-400"
-                    style={{ width: `${breakdown.snackPercent}%` }}
+                    style={{ width: `${breakdown.sprintPercent}%` }}
                   />
                   <div
                     className="bg-blue-500"
-                    style={{ width: `${breakdown.mealPercent}%` }}
+                    style={{ width: `${breakdown.sessionPercent}%` }}
                   />
                   <div
                     className="bg-green-500"
-                    style={{ width: `${breakdown.timeTestedPercent}%` }}
+                    style={{ width: `${breakdown.journeyPercent}%` }}
                   />
                 </div>
                 <div className="text-xs text-zinc-600 w-20 text-right">
@@ -231,21 +231,21 @@ export default function CompletedPage() {
             <div>
               <div className="text-xs text-zinc-600">⚡ Sprint</div>
               <div className="mt-1 text-sm font-medium text-zinc-900">
-                {formatTime(Math.round(currentData.snackMinutes / parseInt(timeRange)))}
+                {formatTime(Math.round(currentData.sprintMinutes / parseInt(timeRange)))}
                 /day
               </div>
             </div>
             <div>
               <div className="text-xs text-zinc-600">🎯 Session</div>
               <div className="mt-1 text-sm font-medium text-zinc-900">
-                {formatTime(Math.round(currentData.mealMinutes / parseInt(timeRange)))}
+                {formatTime(Math.round(currentData.sessionMinutes / parseInt(timeRange)))}
                 /day
               </div>
             </div>
             <div>
-              <div className="text-xs text-zinc-600">Time-tested</div>
+              <div className="text-xs text-zinc-600">🗺️ Journey</div>
               <div className="mt-1 text-sm font-medium text-zinc-900">
-                {formatTime(Math.round(currentData.timeTestedMinutes / parseInt(timeRange)))}
+                {formatTime(Math.round(currentData.journeyMinutes / parseInt(timeRange)))}
                 /day
               </div>
             </div>

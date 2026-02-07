@@ -5,18 +5,18 @@ import Link from "next/link";
 import { formatReadingTime } from "@/lib/time-estimation";
 
 interface DietData {
-  snackMinutes: number;
-  mealMinutes: number;
-  timeTestedMinutes: number;
+  sprintMinutes: number;
+  sessionMinutes: number;
+  journeyMinutes: number;
   totalMinutes: number;
-  snackPercent: number;
-  mealPercent: number;
-  timeTestedPercent: number;
+  sprintPercent: number;
+  sessionPercent: number;
+  journeyPercent: number;
   completedCount: number;
   items: Array<{
     id: string;
     title: string;
-    macro: string;
+    contentType: string;
     timeSpent: number;
     completedAt: Date | null;
   }>;
@@ -39,42 +39,42 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
   const [timeRange, setTimeRange] = useState<"7" | "14" | "21">("7");
   const currentData = data.periods[timeRange];
 
-  const getMacroLabel = (macro: string) => {
-    if (macro === "SNACK") return "⚡ Sprint";
-    if (macro === "MEAL") return "🎯 Session";
+  const getContentTypeLabel = (contentType: string) => {
+    if (contentType === "SPRINT") return "⚡ Sprint";
+    if (contentType === "SESSION") return "🎯 Session";
     return "🗺️ Journey";
   };
 
   const getRecommendation = (data: DietData) => {
-    const { snackPercent, mealPercent, timeTestedPercent } = data;
+    const { sprintPercent, sessionPercent, journeyPercent } = data;
 
     if (data.totalMinutes === 0) {
       return "Start tracking your reading to see personalized recommendations!";
     }
 
-    if (snackPercent > 60) {
+    if (sprintPercent > 60) {
       return "You've been doing a lot of quick Sprints. Consider adding more focused Sessions or deep Journeys to your routine.";
     }
-    if (mealPercent > 60 && timeTestedPercent < 20) {
+    if (sessionPercent > 60 && journeyPercent < 20) {
       return "You have a solid routine of focused Sessions. Try to make room for more deep Journeys.";
     }
-    if (timeTestedPercent > 60) {
+    if (journeyPercent > 60) {
       return "You're investing a lot in deep Journeys! Consider adding some variety with shorter, timely content.";
     }
     if (
-      Math.abs(snackPercent - 33) < 10 &&
-      Math.abs(mealPercent - 33) < 10 &&
-      Math.abs(timeTestedPercent - 33) < 10
+      Math.abs(sprintPercent - 33) < 10 &&
+      Math.abs(sessionPercent - 33) < 10 &&
+      Math.abs(journeyPercent - 33) < 10
     ) {
       return "Great balance! Your time investment is well distributed across all content types.";
     }
-    if (snackPercent < 10) {
+    if (sprintPercent < 10) {
       return "Add some variety with quick Sprints to stay informed on timely topics.";
     }
-    if (mealPercent < 10) {
+    if (sessionPercent < 10) {
       return "Balance your reading with more focused Sessions for deeper exploration.";
     }
-    if (timeTestedPercent < 10) {
+    if (journeyPercent < 10) {
       return "Make room for deep Journeys that provide lasting insights.";
     }
     return "Keep up your reading habits! Track your progress to maintain balance.";
@@ -128,29 +128,29 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
             <div className="grid grid-cols-3 gap-4">
               <div className="rounded-xl bg-orange-50 border border-orange-100 p-4">
                 <div className="text-3xl font-semibold text-orange-900">
-                  {currentData.snackPercent}%
+                  {currentData.sprintPercent}%
                 </div>
                 <div className="mt-1 text-sm font-medium text-orange-700">⚡ Sprint</div>
                 <div className="mt-2 text-xs text-orange-600">
-                  {formatReadingTime(currentData.snackMinutes)}
+                  {formatReadingTime(currentData.sprintMinutes)}
                 </div>
               </div>
               <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
                 <div className="text-3xl font-semibold text-blue-900">
-                  {currentData.mealPercent}%
+                  {currentData.sessionPercent}%
                 </div>
                 <div className="mt-1 text-sm font-medium text-blue-700">🎯 Session</div>
                 <div className="mt-2 text-xs text-blue-600">
-                  {formatReadingTime(currentData.mealMinutes)}
+                  {formatReadingTime(currentData.sessionMinutes)}
                 </div>
               </div>
               <div className="rounded-xl bg-green-50 border border-green-100 p-4">
                 <div className="text-3xl font-semibold text-green-900">
-                  {currentData.timeTestedPercent}%
+                  {currentData.journeyPercent}%
                 </div>
                 <div className="mt-1 text-sm font-medium text-green-700">Time-tested</div>
                 <div className="mt-2 text-xs text-green-600">
-                  {formatReadingTime(currentData.timeTestedMinutes)}
+                  {formatReadingTime(currentData.journeyMinutes)}
                 </div>
               </div>
             </div>
@@ -223,28 +223,28 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                 <div key={period} className="flex items-center gap-4">
                   <div className="w-20 text-sm text-zinc-600">{period} days</div>
                   <div className="flex-1 h-10 bg-zinc-100 rounded-lg overflow-hidden flex">
-                    {periodData.snackPercent > 0 && (
+                    {periodData.sprintPercent > 0 && (
                       <div
                         className="bg-orange-400 flex items-center justify-center text-xs text-white font-medium"
-                        style={{ width: `${periodData.snackPercent}%` }}
+                        style={{ width: `${periodData.sprintPercent}%` }}
                       >
-                        {periodData.snackPercent > 10 && `${periodData.snackPercent}%`}
+                        {periodData.sprintPercent > 10 && `${periodData.sprintPercent}%`}
                       </div>
                     )}
-                    {periodData.mealPercent > 0 && (
+                    {periodData.sessionPercent > 0 && (
                       <div
                         className="bg-blue-500 flex items-center justify-center text-xs text-white font-medium"
-                        style={{ width: `${periodData.mealPercent}%` }}
+                        style={{ width: `${periodData.sessionPercent}%` }}
                       >
-                        {periodData.mealPercent > 10 && `${periodData.mealPercent}%`}
+                        {periodData.sessionPercent > 10 && `${periodData.sessionPercent}%`}
                       </div>
                     )}
-                    {periodData.timeTestedPercent > 0 && (
+                    {periodData.journeyPercent > 0 && (
                       <div
                         className="bg-green-500 flex items-center justify-center text-xs text-white font-medium"
-                        style={{ width: `${periodData.timeTestedPercent}%` }}
+                        style={{ width: `${periodData.journeyPercent}%` }}
                       >
-                        {periodData.timeTestedPercent > 10 && `${periodData.timeTestedPercent}%`}
+                        {periodData.journeyPercent > 10 && `${periodData.journeyPercent}%`}
                       </div>
                     )}
                   </div>
@@ -265,21 +265,21 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
               <div>
                 <div className="text-sm text-zinc-600">⚡ Sprint</div>
                 <div className="mt-2 text-lg font-semibold text-zinc-900">
-                  {formatReadingTime(Math.round(currentData.snackMinutes / parseInt(timeRange)))}
+                  {formatReadingTime(Math.round(currentData.sprintMinutes / parseInt(timeRange)))}
                   <span className="text-sm text-zinc-500 font-normal">/day</span>
                 </div>
               </div>
               <div>
                 <div className="text-sm text-zinc-600">🎯 Session</div>
                 <div className="mt-2 text-lg font-semibold text-zinc-900">
-                  {formatReadingTime(Math.round(currentData.mealMinutes / parseInt(timeRange)))}
+                  {formatReadingTime(Math.round(currentData.sessionMinutes / parseInt(timeRange)))}
                   <span className="text-sm text-zinc-500 font-normal">/day</span>
                 </div>
               </div>
               <div>
                 <div className="text-sm text-zinc-600">Time-tested</div>
                 <div className="mt-2 text-lg font-semibold text-zinc-900">
-                  {formatReadingTime(Math.round(currentData.timeTestedMinutes / parseInt(timeRange)))}
+                  {formatReadingTime(Math.round(currentData.journeyMinutes / parseInt(timeRange)))}
                   <span className="text-sm text-zinc-500 font-normal">/day</span>
                 </div>
               </div>
@@ -301,7 +301,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                     <div className="flex-1">
                       <div className="text-sm font-medium text-zinc-900">{item.title}</div>
                       <div className="mt-1 text-xs text-zinc-500">
-                        {getMacroLabel(item.macro)} • {formatReadingTime(item.timeSpent)}
+                        {getContentTypeLabel(item.contentType)} • {formatReadingTime(item.timeSpent)}
                         {item.completedAt &&
                           ` • ${new Date(item.completedAt).toLocaleDateString("en-US", {
                             month: "short",

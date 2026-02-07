@@ -32,7 +32,7 @@ export default async function AnalyticsPage() {
       select: {
         id: true,
         title: true,
-        macro: true,
+        contentType: true,
         timeSpentMinutes: true,
         completedAt: true,
       },
@@ -51,7 +51,7 @@ export default async function AnalyticsPage() {
       select: {
         id: true,
         title: true,
-        macro: true,
+        contentType: true,
         timeSpentMinutes: true,
         lastReadAt: true,
       },
@@ -59,31 +59,31 @@ export default async function AnalyticsPage() {
 
     const allItems = [...completedItems, ...inProgressItems];
 
-    const snackTime = allItems
-      .filter((i) => i.macro === "SNACK")
+    const sprintTime = allItems
+      .filter((i) => i.contentType === "SPRINT")
       .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
-    const mealTime = allItems
-      .filter((i) => i.macro === "MEAL")
+    const sessionTime = allItems
+      .filter((i) => i.contentType === "SESSION")
       .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
-    const timeTestedTime = allItems
-      .filter((i) => i.macro === "TIME_TESTED")
+    const journeyTime = allItems
+      .filter((i) => i.contentType === "JOURNEY")
       .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
 
-    const totalMinutes = snackTime + mealTime + timeTestedTime;
+    const totalMinutes = sprintTime + sessionTime + journeyTime;
 
     return {
-      snackMinutes: snackTime,
-      mealMinutes: mealTime,
-      timeTestedMinutes: timeTestedTime,
+      sprintMinutes: sprintTime,
+      sessionMinutes: sessionTime,
+      journeyMinutes: journeyTime,
       totalMinutes,
-      snackPercent: totalMinutes > 0 ? Math.round((snackTime / totalMinutes) * 100) : 0,
-      mealPercent: totalMinutes > 0 ? Math.round((mealTime / totalMinutes) * 100) : 0,
-      timeTestedPercent: totalMinutes > 0 ? Math.round((timeTestedTime / totalMinutes) * 100) : 0,
+      sprintPercent: totalMinutes > 0 ? Math.round((sprintTime / totalMinutes) * 100) : 0,
+      sessionPercent: totalMinutes > 0 ? Math.round((sessionTime / totalMinutes) * 100) : 0,
+      journeyPercent: totalMinutes > 0 ? Math.round((journeyTime / totalMinutes) * 100) : 0,
       completedCount: completedItems.length,
       items: completedItems.map(item => ({
         id: item.id,
         title: item.title,
-        macro: item.macro,
+        contentType: item.contentType,
         timeSpent: item.timeSpentMinutes || 0,
         completedAt: item.completedAt,
       })),

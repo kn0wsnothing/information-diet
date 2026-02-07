@@ -24,7 +24,7 @@ export default async function FeedPage() {
       id: true,
       title: true,
       url: true,
-      macro: true,
+      contentType: true,
       createdAt: true,
       currentPage: true,
       totalPages: true,

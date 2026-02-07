@@ -5,25 +5,25 @@ import { useTransition } from "react";
 
 export function RecategorizeButton({
   itemId,
-  currentMacro,
+  currentContentType,
   recategorizeAction,
 }: {
   itemId: string;
-  currentMacro: string;
-  recategorizeAction: (id: string, newMacro: string) => Promise<void>;
+  currentContentType: string;
+  recategorizeAction: (id: string, newContentType: string) => Promise<void>;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const categories = [
-    { value: "SNACK", label: "⚡ Sprint" },
-    { value: "MEAL", label: "🎯 Session" },
-    { value: "TIME_TESTED", label: "🗺️ Journey" },
+    { value: "SPRINT", label: "⚡ Sprint" },
+    { value: "SESSION", label: "🎯 Session" },
+    { value: "JOURNEY", label: "🗺️ Journey" },
   ];
 
-  const handleRecategorize = (newMacro: string) => {
+  const handleRecategorize = (newContentType: string) => {
     startTransition(async () => {
-      await recategorizeAction(itemId, newMacro);
+      await recategorizeAction(itemId, newContentType);
       setShowMenu(false);
     });
   };
@@ -43,7 +43,7 @@ export function RecategorizeButton({
             <button
               key={cat.value}
               onClick={() => handleRecategorize(cat.value)}
-              disabled={isPending || cat.value === currentMacro}
+              disabled={isPending || cat.value === currentContentType}
               className="block w-full px-3 py-2 text-left text-xs hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-default"
             >
               {cat.label}

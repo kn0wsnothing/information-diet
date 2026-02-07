@@ -7,9 +7,9 @@ import { SignOutButton } from "@clerk/nextjs";
 import { DietChart } from "./diet-chart";
 
 interface DietData {
-  snackMinutes: number;
-  mealMinutes: number;
-  timeTestedMinutes: number;
+  sprintMinutes: number;
+  sessionMinutes: number;
+  journeyMinutes: number;
   totalMinutes: number;
 }
 

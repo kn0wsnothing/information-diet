@@ -1,73 +1,73 @@
 // Enhanced auto-categorization logic for different content types
 export interface CategorizationScore {
-  snack: number;
-  meal: number;
-  timeTested: number;
+  sprint: number;
+  session: number;
+  journey: number;
 }
 
 function calculateScores(url: string, title?: string): CategorizationScore {
-  const scores: CategorizationScore = { snack: 0, meal: 0, timeTested: 0 };
+  const scores: CategorizationScore = { sprint: 0, session: 0, journey: 0 };
   const domain = new URL(url).hostname.toLowerCase();
   const titleLower = (title || "").toLowerCase();
 
-  // Social media and quick content
-  if (domain.includes("twitter.com") || domain.includes("x.com")) { scores.snack += 10; }
-  if (domain.includes("linkedin.com")) { scores.snack += 8; }
-  if (domain.includes("reddit.com")) { scores.snack += 6; }
-  if (domain.includes("news.ycombinator.com") || domain.includes("hackernews")) { scores.snack += 7; }
-  if (domain.includes("producthunt.com")) { scores.snack += 9; }
+  // Social media and quick content (SPRINT)
+  if (domain.includes("twitter.com") || domain.includes("x.com")) { scores.sprint += 10; }
+  if (domain.includes("linkedin.com")) { scores.sprint += 8; }
+  if (domain.includes("reddit.com")) { scores.sprint += 6; }
+  if (domain.includes("news.ycombinator.com") || domain.includes("hackernews")) { scores.sprint += 7; }
+  if (domain.includes("producthunt.com")) { scores.sprint += 9; }
   
-  // Video platforms
-  if (domain.includes("youtube.com") || domain.includes("youtu.be")) { scores.snack += 8; }
-  if (domain.includes("vimeo.com")) { scores.snack += 6; }
-  if (domain.includes("tiktok.com")) { scores.snack += 10; }
+  // Video platforms (SPRINT)
+  if (domain.includes("youtube.com") || domain.includes("youtu.be")) { scores.sprint += 8; }
+  if (domain.includes("vimeo.com")) { scores.sprint += 6; }
+  if (domain.includes("tiktok.com")) { scores.sprint += 10; }
   
-  // News sites (tend to be quick reads)
-  if (domain.includes("cnn.com") || domain.includes("bbc.com") || domain.includes("reuters.com")) { scores.snack += 6; }
-  if (domain.includes("theguardian.com") || domain.includes("nytimes.com")) { scores.snack += 5; scores.meal += 2; }
-  if (domain.includes("washingtonpost.com") || domain.includes("wsj.com")) { scores.snack += 6; }
+  // News sites (tend to be quick reads - SPRINT)
+  if (domain.includes("cnn.com") || domain.includes("bbc.com") || domain.includes("reuters.com")) { scores.sprint += 6; }
+  if (domain.includes("theguardian.com") || domain.includes("nytimes.com")) { scores.sprint += 5; scores.session += 2; }
+  if (domain.includes("washingtonpost.com") || domain.includes("wsj.com")) { scores.sprint += 6; }
   
-  // Tech news (usually quick)
-  if (domain.includes("techcrunch.com") || domain.includes("theverge.com")) { scores.snack += 6; }
-  if (domain.includes("arstechnica.com")) { scores.snack += 5; scores.meal += 3; }
-  if (domain.includes("engadget.com")) { scores.snack += 7; }
+  // Tech news (usually quick - SPRINT)
+  if (domain.includes("techcrunch.com") || domain.includes("theverge.com")) { scores.sprint += 6; }
+  if (domain.includes("arstechnica.com")) { scores.sprint += 5; scores.session += 3; }
+  if (domain.includes("engadget.com")) { scores.sprint += 7; }
   
-  // Newsletter platforms (thoughtful reads)
-  if (domain.includes("substack.com")) { scores.meal += 8; scores.timeTested += 1; }
-  if (domain.includes("medium.com")) { scores.meal += 7; }
-  if (domain.includes("ghost.io")) { scores.meal += 6; }
-  if (domain.includes("beehiiv.com")) { scores.meal += 6; scores.snack += 1; }
+  // Newsletter platforms (thoughtful reads - SESSION)
+  if (domain.includes("substack.com")) { scores.session += 8; scores.journey += 1; }
+  if (domain.includes("medium.com")) { scores.session += 7; }
+  if (domain.includes("ghost.io")) { scores.session += 6; }
+  if (domain.includes("beehiiv.com")) { scores.session += 6; scores.sprint += 1; }
   
-  // Long-form content
-  if (domain.includes("longform.org")) { scores.meal += 7; scores.timeTested += 2; }
-  if (domain.includes("newyorker.com") || domain.includes("theatlantic.com")) { scores.meal += 8; scores.timeTested += 1; }
-  if (domain.includes("wired.com") || domain.includes("smithsonianmag.com")) { scores.meal += 6; scores.timeTested += 1; }
+  // Long-form content (SESSION/JOURNEY)
+  if (domain.includes("longform.org")) { scores.session += 7; scores.journey += 2; }
+  if (domain.includes("newyorker.com") || domain.includes("theatlantic.com")) { scores.session += 8; scores.journey += 1; }
+  if (domain.includes("wired.com") || domain.includes("smithsonianmag.com")) { scores.session += 6; scores.journey += 1; }
   
-  // Academic and research
-  if (domain.includes("arxiv.org") || domain.includes("scholar.google.com")) { scores.timeTested += 10; }
-  if (domain.includes("nature.com") || domain.includes("science.org")) { scores.timeTested += 9; }
-  if (domain.includes("jstor.org") || domain.includes("researchgate.net")) { scores.timeTested += 8; }
+  // Academic and research (JOURNEY)
+  if (domain.includes("arxiv.org") || domain.includes("scholar.google.com")) { scores.journey += 10; }
+  if (domain.includes("nature.com") || domain.includes("science.org")) { scores.journey += 9; }
+  if (domain.includes("jstor.org") || domain.includes("researchgate.net")) { scores.journey += 8; }
   
-  // Documentation and technical deep dives
-  if (domain.includes("docs.") || domain.includes("developer.")) { scores.timeTested += 7; scores.meal += 2; }
-  if (domain.includes("github.com") && url.includes("/blob/")) { scores.timeTested += 6; scores.snack += 1; }
+  // Documentation and technical deep dives (JOURNEY/SESSION)
+  if (domain.includes("docs.") || domain.includes("developer.")) { scores.journey += 7; scores.session += 2; }
+  if (domain.includes("github.com") && url.includes("/blob/")) { scores.journey += 6; scores.sprint += 1; }
   
-  // Books and reading platforms
-  if (domain.includes("goodreads.com") || domain.includes("storygraph.com")) { scores.timeTested += 8; }
-  if (domain.includes("amazon.com") && url.includes("/books/")) { scores.timeTested += 6; scores.meal += 2; }
-  if (domain.includes("gutenberg.org")) { scores.timeTested += 9; }
+  // Books and reading platforms (JOURNEY)
+  if (domain.includes("goodreads.com") || domain.includes("storygraph.com")) { scores.journey += 8; }
+  if (domain.includes("amazon.com") && url.includes("/books/")) { scores.journey += 6; scores.session += 2; }
+  if (domain.includes("gutenberg.org")) { scores.journey += 9; }
   
   // Blog platforms (check title length if available)
   if (domain.includes("blog") || domain.includes("wordpress.com") || domain.includes("tumblr.com")) {
-    if (title && title.length > 80) { scores.meal += 4; }
-    else if (title) { scores.snack += 4; }
-    else { scores.meal += 3; }
+    if (title && title.length > 80) { scores.session += 4; }
+    else if (title) { scores.sprint += 4; }
+    else { scores.session += 3; }
   }
 
   // Title analysis
   const words = titleLower.split(/\s+/).length;
   
-  // Look for book indicators
+  // Look for book indicators (JOURNEY)
   if (titleLower.includes("book") || 
       titleLower.includes("chapter") ||
       titleLower.includes("guide") ||
@@ -75,20 +75,20 @@ function calculateScores(url: string, title?: string): CategorizationScore {
       titleLower.includes("handbook") ||
       titleLower.includes("textbook") ||
       titleLower.includes("ebook")) {
-    scores.timeTested += 7;
+    scores.journey += 7;
   }
   
-  // Look for academic indicators
+  // Look for academic indicators (JOURNEY/SESSION)
   if (titleLower.includes("paper") || 
       titleLower.includes("study") ||
       titleLower.includes("research") ||
       titleLower.includes("analysis") ||
       titleLower.includes("journal")) {
-    scores.timeTested += 5;
-    scores.meal += 2;
+    scores.journey += 5;
+    scores.session += 2;
   }
   
-  // Look for quick content indicators
+  // Look for quick content indicators (SPRINT)
   if (titleLower.includes("quick") || 
       titleLower.includes("brief") ||
       titleLower.includes("summary") ||
@@ -97,10 +97,10 @@ function calculateScores(url: string, title?: string): CategorizationScore {
       titleLower.includes("tip") ||
       titleLower.includes("hack") ||
       titleLower.includes("trick")) {
-    scores.snack += 6;
+    scores.sprint += 6;
   }
   
-  // Look for thoughtful content indicators
+  // Look for thoughtful content indicators (SESSION/JOURNEY)
   if (titleLower.includes("essay") || 
       titleLower.includes("deep dive") ||
       titleLower.includes("exploration") ||
@@ -108,64 +108,64 @@ function calculateScores(url: string, title?: string): CategorizationScore {
       titleLower.includes("feature") ||
       titleLower.includes("profile") ||
       titleLower.includes("story")) {
-    scores.meal += 5;
-    scores.timeTested += 2;
+    scores.session += 5;
+    scores.journey += 2;
   }
 
   // Length-based scoring
-  if (words <= 8) { scores.snack += 3; }
-  if (words >= 20) { scores.timeTested += 4; scores.meal += 1; }
-  if (words >= 30) { scores.timeTested += 6; scores.meal += 2; }
+  if (words <= 8) { scores.sprint += 3; }
+  if (words >= 20) { scores.journey += 4; scores.session += 1; }
+  if (words >= 30) { scores.journey += 6; scores.session += 2; }
 
   return scores;
 }
 
-export function inferMacroFromUrl(url: string, title?: string): "SNACK" | "MEAL" | "TIME_TESTED" {
+export function inferContentTypeFromUrl(url: string, title?: string): "SPRINT" | "SESSION" | "JOURNEY" {
   const scores = calculateScores(url, title);
   
   // Find the highest score
-  const maxScore = Math.max(scores.snack, scores.meal, scores.timeTested);
+  const maxScore = Math.max(scores.sprint, scores.session, scores.journey);
   
   // If there's a clear winner (>50% margin), use it
   if (maxScore > 0) {
-    if (scores.timeTested >= maxScore) {
-      // Require time-tested to be significantly higher than snack
-      if (scores.timeTested > scores.snack * 1.2 || scores.timeTested > scores.meal) {
-        return "TIME_TESTED";
+    if (scores.journey >= maxScore) {
+      // Require journey to be significantly higher than sprint
+      if (scores.journey > scores.sprint * 1.2 || scores.journey > scores.session) {
+        return "JOURNEY";
       }
-    } else if (scores.meal >= maxScore) {
-      // Prefer meal unless snack is much higher
-      if (scores.meal > scores.snack * 1.3) {
-        return "MEAL";
+    } else if (scores.session >= maxScore) {
+      // Prefer session unless sprint is much higher
+      if (scores.session > scores.sprint * 1.3) {
+        return "SESSION";
       }
-    } else if (scores.snack >= maxScore) {
-      return "SNACK";
+    } else if (scores.sprint >= maxScore) {
+      return "SPRINT";
     }
   }
   
   // Fallback logic
-  if (scores.timeTested > scores.snack && scores.timeTested > scores.meal) {
-    return "TIME_TESTED";
+  if (scores.journey > scores.sprint && scores.journey > scores.session) {
+    return "JOURNEY";
   }
-  if (scores.meal > scores.snack) {
-    return "MEAL";
+  if (scores.session > scores.sprint) {
+    return "SESSION";
   }
-  if (scores.snack > 0) {
-    return "SNACK";
+  if (scores.sprint > 0) {
+    return "SPRINT";
   }
   
-  // Default to meal for unknown content
-  return "MEAL";
+  // Default to session for unknown content
+  return "SESSION";
 }
 
-export function inferMacroFromTitle(title: string): "SNACK" | "MEAL" | "TIME_TESTED" {
+export function inferContentTypeFromTitle(title: string): "SPRINT" | "SESSION" | "JOURNEY" {
   const words = title.split(/\s+/).length;
   
-  // Very short titles are likely snacks
-  if (words <= 8) return "SNACK";
+  // Very short titles are likely sprints
+  if (words <= 8) return "SPRINT";
   
   // Very long titles suggest deep content
-  if (words >= 20) return "TIME_TESTED";
+  if (words >= 20) return "JOURNEY";
   
   // Look for book indicators
   if (title.toLowerCase().includes("book") || 
@@ -173,7 +173,7 @@ export function inferMacroFromTitle(title: string): "SNACK" | "MEAL" | "TIME_TES
       title.toLowerCase().includes("guide") ||
       title.toLowerCase().includes("manual") ||
       title.toLowerCase().includes("handbook")) {
-    return "TIME_TESTED";
+    return "JOURNEY";
   }
   
   // Look for quick content indicators
@@ -182,7 +182,7 @@ export function inferMacroFromTitle(title: string): "SNACK" | "MEAL" | "TIME_TES
       title.toLowerCase().includes("summary") ||
       title.toLowerCase().includes("news") ||
       title.toLowerCase().includes("update")) {
-    return "SNACK";
+    return "SPRINT";
   }
   
   // Look for thoughtful content indicators
@@ -191,11 +191,11 @@ export function inferMacroFromTitle(title: string): "SNACK" | "MEAL" | "TIME_TES
       title.toLowerCase().includes("deep dive") ||
       title.toLowerCase().includes("exploration") ||
       title.toLowerCase().includes("investigation")) {
-    return "MEAL";
+    return "SESSION";
   }
   
   // Default based on word count
-  if (words <= 12) return "SNACK";
-  if (words >= 15) return "TIME_TESTED";
-  return "MEAL";
+  if (words <= 12) return "SPRINT";
+  if (words >= 15) return "JOURNEY";
+  return "SESSION";
 }

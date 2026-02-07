@@ -1,14 +1,14 @@
 "use client";
 
 interface DietData {
-  snackMinutes: number;
-  mealMinutes: number;
-  timeTestedMinutes: number;
+  sprintMinutes: number;
+  sessionMinutes: number;
+  journeyMinutes: number;
   totalMinutes: number;
 }
 
 export function DietChart({ data }: { data: DietData }) {
-  const { snackMinutes, mealMinutes, timeTestedMinutes, totalMinutes } = data;
+  const { sprintMinutes, sessionMinutes, journeyMinutes, totalMinutes } = data;
   
   if (totalMinutes === 0) {
     return (
@@ -35,14 +35,14 @@ export function DietChart({ data }: { data: DietData }) {
     );
   }
 
-  const snackPercent = (snackMinutes / totalMinutes) * 100;
-  const mealPercent = (mealMinutes / totalMinutes) * 100;
-  const timeTestedPercent = (timeTestedMinutes / totalMinutes) * 100;
+  const sprintPercent = (sprintMinutes / totalMinutes) * 100;
+  const sessionPercent = (sessionMinutes / totalMinutes) * 100;
+  const journeyPercent = (journeyMinutes / totalMinutes) * 100;
 
   const circumference = 2 * Math.PI * 56;
-  const snackLength = (snackPercent / 100) * circumference;
-  const mealLength = (mealPercent / 100) * circumference;
-  const timeTestedLength = (timeTestedPercent / 100) * circumference;
+  const sprintLength = (sprintPercent / 100) * circumference;
+  const sessionLength = (sessionPercent / 100) * circumference;
+  const journeyLength = (journeyPercent / 100) * circumference;
 
   let previousLength = 0;
 
@@ -60,8 +60,8 @@ export function DietChart({ data }: { data: DietData }) {
             fill="none"
           />
           
-          {/* Snacks segment */}
-          {snackMinutes > 0 && (
+          {/* Sprint segment */}
+          {sprintMinutes > 0 && (
             <circle
               cx="64"
               cy="64"
@@ -69,14 +69,14 @@ export function DietChart({ data }: { data: DietData }) {
               stroke="#fb923c"
               strokeWidth="16"
               fill="none"
-              strokeDasharray={`${snackLength} ${circumference}`}
+              strokeDasharray={`${sprintLength} ${circumference}`}
               strokeDashoffset={-previousLength}
             />
           )}
-          {previousLength += snackLength}
+          {previousLength += sprintLength}
           
-          {/* Meals segment */}
-          {mealMinutes > 0 && (
+          {/* Session segment */}
+          {sessionMinutes > 0 && (
             <circle
               cx="64"
               cy="64"
@@ -84,14 +84,14 @@ export function DietChart({ data }: { data: DietData }) {
               stroke="#3b82f6"
               strokeWidth="16"
               fill="none"
-              strokeDasharray={`${mealLength} ${circumference}`}
+              strokeDasharray={`${sessionLength} ${circumference}`}
               strokeDashoffset={-previousLength}
             />
           )}
-          {previousLength += mealLength}
+          {previousLength += sessionLength}
           
-          {/* Time-tested segment */}
-          {timeTestedMinutes > 0 && (
+          {/* Journey segment */}
+          {journeyMinutes > 0 && (
             <circle
               cx="64"
               cy="64"
@@ -99,7 +99,7 @@ export function DietChart({ data }: { data: DietData }) {
               stroke="#10b981"
               strokeWidth="16"
               fill="none"
-              strokeDasharray={`${timeTestedLength} ${circumference}`}
+              strokeDasharray={`${journeyLength} ${circumference}`}
               strokeDashoffset={-previousLength}
             />
           )}
@@ -119,22 +119,22 @@ export function DietChart({ data }: { data: DietData }) {
       </div>
       
       <div className="mt-3 space-y-1 text-xs">
-        {snackMinutes > 0 && (
+        {sprintMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-            <span className="text-zinc-600">⚡ Sprint {snackPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">⚡ Sprint {sprintPercent.toFixed(0)}%</span>
           </div>
         )}
-        {mealMinutes > 0 && (
+        {sessionMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span className="text-zinc-600">🎯 Session {mealPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">🎯 Session {sessionPercent.toFixed(0)}%</span>
           </div>
         )}
-        {timeTestedMinutes > 0 && (
+        {journeyMinutes > 0 && (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span className="text-zinc-600">🗺️ Journey {timeTestedPercent.toFixed(0)}%</span>
+            <span className="text-zinc-600">🗺️ Journey {journeyPercent.toFixed(0)}%</span>
           </div>
         )}
       </div>
