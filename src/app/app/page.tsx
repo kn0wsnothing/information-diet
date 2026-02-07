@@ -161,10 +161,22 @@ export default async function AppHomePage() {
         console.log(
           `[Dashboard] Running Readwise sync (last sync: ${Math.round(lastSyncMs / 1000)}s ago)`,
         );
+        // On first sync (no lastSyncedAt), limit to recent 500 items to avoid timeout
+        // Subsequent syncs only fetch updated items, so no limit needed
+        const isFirstSync = !readwiseSource.lastSyncedAt;
+        const maxItemsOnFirstSync = isFirstSync ? 500 : undefined;
+
+        if (isFirstSync) {
+          console.log(
+            "[Dashboard] First sync detected - limiting to 500 most recent items to avoid timeout",
+          );
+        }
+
         const syncResult = await syncReadwiseProgress(
           dbUser.id,
           readwiseSource.readwiseToken,
           readwiseSource.lastSyncedAt || undefined,
+          maxItemsOnFirstSync,
         );
         await updateSourceLastSynced(
           readwiseSource.id,

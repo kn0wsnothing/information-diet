@@ -93,11 +93,17 @@ function sleep(ms: number): Promise<void> {
  * Sync Readwise progress with app database
  * Fetches documents from Readwise and updates item statuses/progress
  * Includes retry logic with exponential backoff for resilience
+ *
+ * @param userId - User ID to sync for
+ * @param readwiseToken - Readwise API token
+ * @param lastSyncedAt - Only fetch items updated after this timestamp
+ * @param maxResults - Hard limit on number of items to fetch (useful for first sync)
  */
 export async function syncReadwiseProgress(
   userId: string,
   readwiseToken: string,
   lastSyncedAt?: Date,
+  maxResults?: number,
 ): Promise<SyncResult> {
   const result: SyncResult = {
     itemsUpdated: 0,
@@ -119,6 +125,7 @@ export async function syncReadwiseProgress(
         allDocuments = await fetchReadwiseDocuments({
           token: readwiseToken,
           updatedAfter: lastSyncedAt?.toISOString(),
+          maxResults,
         });
         lastFetchError = null;
         break;
