@@ -9,6 +9,7 @@ import { RemoveButton } from "./remove-button";
 import { StartReadingButton } from "./start-reading-button";
 import { Sidebar } from "./sidebar";
 import { OnboardingModal } from "./onboarding/onboarding-modal";
+import { SyncStatus } from "./sync-status";
 import { getContentTypeLabel } from "@/lib/content-types";
 import { getItemOpenUrl, isReadwiseItem } from "@/lib/readwise-url";
 
@@ -41,6 +42,7 @@ interface DashboardData {
     totalMinutes: number;
   };
   readwiseConnected: boolean;
+  lastReadwiseSyncAt: Date | null;
   userEmail: string;
   showOnboarding: boolean;
   onboardingStep: number;
@@ -72,6 +74,7 @@ export function DashboardClient({
     suggestion,
     dietData,
     readwiseConnected,
+    lastReadwiseSyncAt,
     userEmail,
     onboardingStep,
   } = data;
@@ -190,6 +193,16 @@ export function DashboardClient({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Sync Status */}
+      {readwiseConnected && (
+        <div className="flex justify-end">
+          <SyncStatus
+            lastSyncAt={lastReadwiseSyncAt}
+            isConnected={readwiseConnected}
+          />
         </div>
       )}
 

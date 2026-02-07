@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "./dashboard-client";
 import { generateWhyReadThis, isSummaryCacheValid } from "@/lib/ai-summary";
+import {
+  syncReadwiseProgress,
+  updateSourceLastSynced,
+} from "@/lib/readwise-sync";
 
 async function markItemDone(
   itemId: string,
@@ -136,6 +140,26 @@ export default async function AppHomePage() {
     where: { userId: dbUser.id, type: "READWISE" },
     select: { id: true, readwiseToken: true, lastSyncedAt: true },
   });
+
+  // Sync Readwise progress if connected
+  let lastReadwiseSyncAt: Date | null = readwiseSource?.lastSyncedAt || null;
+  if (readwiseSource?.readwiseToken) {
+    try {
+      const syncResult = await syncReadwiseProgress(
+        dbUser.id,
+        readwiseSource.readwiseToken,
+        readwiseSource.lastSyncedAt || undefined,
+      );
+      await updateSourceLastSynced(readwiseSource.id, syncResult.lastSyncedAt);
+      lastReadwiseSyncAt = syncResult.lastSyncedAt;
+      console.log(
+        `[Dashboard] Readwise sync complete: ${syncResult.itemsUpdated} updated, ${syncResult.itemsCompleted} completed`,
+      );
+    } catch (error) {
+      console.error("[Dashboard] Readwise sync failed:", error);
+      // Continue with dashboard, sync failure is non-blocking
+    }
+  }
 
   // Get in-progress items
   const inProgressItems = await prisma.item.findMany({
@@ -345,6 +369,7 @@ export default async function AppHomePage() {
       totalMinutes: totalTime,
     },
     readwiseConnected: !!readwiseSource?.readwiseToken,
+    lastReadwiseSyncAt,
     userEmail: user.emailAddresses?.[0]?.emailAddress || "",
     // Onboarding state
     showOnboarding: !dbUser.onboardingCompleted && !dbUser.onboardingSkipped,
