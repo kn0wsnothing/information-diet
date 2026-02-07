@@ -141,23 +141,47 @@ export default async function AppHomePage() {
     select: { id: true, readwiseToken: true, lastSyncedAt: true },
   });
 
-  // Sync Readwise progress if connected
+  // Sync Readwise progress if connected AND last sync was >1 hour ago
+  // This prevents hitting rate limits on every page load with large libraries
   let lastReadwiseSyncAt: Date | null = readwiseSource?.lastSyncedAt || null;
   if (readwiseSource?.readwiseToken) {
-    try {
-      const syncResult = await syncReadwiseProgress(
-        dbUser.id,
-        readwiseSource.readwiseToken,
-        readwiseSource.lastSyncedAt || undefined,
-      );
-      await updateSourceLastSynced(readwiseSource.id, syncResult.lastSyncedAt);
-      lastReadwiseSyncAt = syncResult.lastSyncedAt;
+    const now = new Date();
+    const lastSyncMs = readwiseSource.lastSyncedAt
+      ? now.getTime() - readwiseSource.lastSyncedAt.getTime()
+      : Infinity;
+    const oneHourMs = 60 * 60 * 1000;
+
+    // Only sync if:
+    // 1. Never synced before (initial setup), OR
+    // 2. Last sync was >1 hour ago
+    const shouldSync = lastSyncMs > oneHourMs;
+
+    if (shouldSync) {
+      try {
+        console.log(
+          `[Dashboard] Running Readwise sync (last sync: ${Math.round(lastSyncMs / 1000)}s ago)`,
+        );
+        const syncResult = await syncReadwiseProgress(
+          dbUser.id,
+          readwiseSource.readwiseToken,
+          readwiseSource.lastSyncedAt || undefined,
+        );
+        await updateSourceLastSynced(
+          readwiseSource.id,
+          syncResult.lastSyncedAt,
+        );
+        lastReadwiseSyncAt = syncResult.lastSyncedAt;
+        console.log(
+          `[Dashboard] Readwise sync complete: ${syncResult.itemsUpdated} updated, ${syncResult.itemsCompleted} completed`,
+        );
+      } catch (error) {
+        console.error("[Dashboard] Readwise sync failed:", error);
+        // Continue with dashboard, sync failure is non-blocking
+      }
+    } else {
       console.log(
-        `[Dashboard] Readwise sync complete: ${syncResult.itemsUpdated} updated, ${syncResult.itemsCompleted} completed`,
+        `[Dashboard] Skipping Readwise sync (last sync: ${Math.round(lastSyncMs / 1000)}s ago, need 3600s)`,
       );
-    } catch (error) {
-      console.error("[Dashboard] Readwise sync failed:", error);
-      // Continue with dashboard, sync failure is non-blocking
     }
   }
 
