@@ -2,8 +2,13 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "./dashboard-client";
+import { generateWhyReadThis, isSummaryCacheValid } from "@/lib/ai-summary";
 
-async function markItemDone(itemId: string, timeSpentMinutes: number, finished?: boolean) {
+async function markItemDone(
+  itemId: string,
+  timeSpentMinutes: number,
+  finished?: boolean,
+) {
   "use server";
 
   const user = await currentUser();
@@ -42,7 +47,11 @@ async function markItemDone(itemId: string, timeSpentMinutes: number, finished?:
   revalidatePath("/app");
 }
 
-async function updateProgress(itemId: string, currentPage: number, timeSpentMinutes: number) {
+async function updateProgress(
+  itemId: string,
+  currentPage: number,
+  timeSpentMinutes: number,
+) {
   "use server";
 
   const user = await currentUser();
@@ -55,7 +64,7 @@ async function updateProgress(itemId: string, currentPage: number, timeSpentMinu
   });
 
   await prisma.item.update({
-    where: { 
+    where: {
       id: itemId,
       userId: dbUser.id,
     },
@@ -70,20 +79,20 @@ async function updateProgress(itemId: string, currentPage: number, timeSpentMinu
   revalidatePath("/app");
 }
 
-async function recategorizeItem(itemId: string, newMacro: string) {
+async function recategorizeItem(itemId: string, newContentType: string) {
   "use server";
 
   const user = await currentUser();
   if (!user) redirect("/sign-in");
 
-  if (!["SNACK", "MEAL", "TIME_TESTED"].includes(newMacro)) {
+  if (!["SPRINT", "SESSION", "JOURNEY"].includes(newContentType)) {
     return;
   }
 
   await prisma.item.update({
     where: { id: itemId },
     data: {
-      macro: newMacro as "SNACK" | "MEAL" | "TIME_TESTED",
+      contentType: newContentType as "SPRINT" | "SESSION" | "JOURNEY",
     },
   });
 
@@ -115,7 +124,7 @@ export default async function AppHomePage() {
   const dbUser = await prisma.user.upsert({
     where: { clerkId: user.id },
     update: {},
-    create: { 
+    create: {
       clerkId: user.id,
       onboardingCompleted: false,
       onboardingStep: 0,
@@ -128,13 +137,33 @@ export default async function AppHomePage() {
     select: { id: true, readwiseToken: true, lastSyncedAt: true },
   });
 
+  // Get in-progress items
+  const inProgressItems = await prisma.item.findMany({
+    where: { userId: dbUser.id, status: "READING" },
+    select: {
+      id: true,
+      title: true,
+      url: true,
+      contentType: true,
+      createdAt: true,
+      currentPage: true,
+      totalPages: true,
+      timeSpentMinutes: true,
+      estimatedMinutes: true,
+      coverUrl: true,
+      readwiseDocumentId: true,
+      lastReadAt: true,
+    },
+    orderBy: { lastReadAt: "desc" }, // Most recently read first
+  });
+
   const allQueued = await prisma.item.findMany({
     where: { userId: dbUser.id, status: "QUEUED" },
     select: {
       id: true,
       title: true,
       url: true,
-      macro: true,
+      contentType: true,
       createdAt: true,
       currentPage: true,
       totalPages: true,
@@ -158,13 +187,13 @@ export default async function AppHomePage() {
       },
     },
     select: {
-      macro: true,
+      contentType: true,
       timeSpentMinutes: true,
     },
   });
 
-  // Get in-progress items with time spent (to include ongoing book reading)
-  const inProgressItems = await prisma.item.findMany({
+  // Get in-progress items with time spent for diet calculation (to include ongoing book reading)
+  const inProgressItemsForDiet = await prisma.item.findMany({
     where: {
       userId: dbUser.id,
       status: { in: ["READING", "QUEUED"] },
@@ -175,81 +204,144 @@ export default async function AppHomePage() {
       },
     },
     select: {
-      macro: true,
+      contentType: true,
       timeSpentMinutes: true,
     },
   });
 
   // Combine both completed and in-progress for diet calculation
-  const allItemsForDiet = [...completedLast7Days, ...inProgressItems];
+  const allItemsForDiet = [...completedLast7Days, ...inProgressItemsForDiet];
 
-  const snackTime = allItemsForDiet
-    .filter((i) => i.macro === "SNACK")
+  const sprintTime = allItemsForDiet
+    .filter((i) => i.contentType === "SPRINT")
     .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
-  const mealTime = allItemsForDiet
-    .filter((i) => i.macro === "MEAL")
+  const sessionTime = allItemsForDiet
+    .filter((i) => i.contentType === "SESSION")
     .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
-  const timeTestedTime = allItemsForDiet
-    .filter((i) => i.macro === "TIME_TESTED")
+  const journeyTime = allItemsForDiet
+    .filter((i) => i.contentType === "JOURNEY")
     .reduce((sum, i) => sum + (i.timeSpentMinutes || 0), 0);
 
-  const totalTime = snackTime + mealTime + timeTestedTime;
-  const snackPercent = totalTime > 0 ? (snackTime / totalTime) * 100 : 0;
-  const mealPercent = totalTime > 0 ? (mealTime / totalTime) * 100 : 0;
-  const timeTestedPercent = totalTime > 0 ? (timeTestedTime / totalTime) * 100 : 0;
+  const totalTime = sprintTime + sessionTime + journeyTime;
+  const sprintPercent = totalTime > 0 ? (sprintTime / totalTime) * 100 : 0;
+  const sessionPercent = totalTime > 0 ? (sessionTime / totalTime) * 100 : 0;
+  const journeyPercent = totalTime > 0 ? (journeyTime / totalTime) * 100 : 0;
 
-  let suggestedMacro: "SNACK" | "MEAL" | "TIME_TESTED" = "MEAL";
+  let suggestedContentType: "SPRINT" | "SESSION" | "JOURNEY" = "SESSION";
   let suggestion = "Try a focused Session next.";
 
   if (totalTime === 0) {
-    suggestedMacro = "SNACK";
+    suggestedContentType = "SPRINT";
     suggestion = "Start with a quick Sprint.";
-  } else if (snackPercent > 60) {
+  } else if (sprintPercent > 60) {
     // Too many Sprints - suggest Session or Journey
-    suggestedMacro = timeTestedPercent < 30 ? "TIME_TESTED" : "MEAL";
-    suggestion = timeTestedPercent < 30 
-      ? "You've been doing a lot of quick Sprints. Time for a deeper Journey."
-      : "You've been doing a lot of quick Sprints. Try a focused Session.";
-  } else if (mealPercent > 60) {
+    suggestedContentType = journeyPercent < 30 ? "JOURNEY" : "SESSION";
+    suggestion =
+      journeyPercent < 30
+        ? "You've been doing a lot of quick Sprints. Time for a deeper Journey."
+        : "You've been doing a lot of quick Sprints. Try a focused Session.";
+  } else if (sessionPercent > 60) {
     // Too many Sessions - suggest Sprint or Journey
-    suggestedMacro = timeTestedPercent < 30 ? "TIME_TESTED" : "SNACK";
-    suggestion = timeTestedPercent < 30
-      ? "You've had plenty of focused Sessions. Try a deep Journey."
-      : "You've had plenty of focused Sessions. Grab a quick Sprint.";
-  } else if (timeTestedPercent > 60) {
+    suggestedContentType = journeyPercent < 30 ? "JOURNEY" : "SPRINT";
+    suggestion =
+      journeyPercent < 30
+        ? "You've had plenty of focused Sessions. Try a deep Journey."
+        : "You've had plenty of focused Sessions. Grab a quick Sprint.";
+  } else if (journeyPercent > 60) {
     // Too many Journeys - suggest Sprint or Session
-    suggestedMacro = snackPercent < 20 ? "SNACK" : "MEAL";
-    suggestion = snackPercent < 20
-      ? "You've been deep in Journeys. Grab a quick Sprint for variety."
-      : "You've been deep in Journeys. Try a focused Session.";
-  } else if (snackPercent < 20) {
+    suggestedContentType = sprintPercent < 20 ? "SPRINT" : "SESSION";
+    suggestion =
+      sprintPercent < 20
+        ? "You've been deep in Journeys. Grab a quick Sprint for variety."
+        : "You've been deep in Journeys. Try a focused Session.";
+  } else if (sprintPercent < 20) {
     // Need more Sprints
-    suggestedMacro = "SNACK";
+    suggestedContentType = "SPRINT";
     suggestion = "Add some variety with a quick Sprint.";
-  } else if (mealPercent < 20) {
+  } else if (sessionPercent < 20) {
     // Need more Sessions
-    suggestedMacro = "MEAL";
+    suggestedContentType = "SESSION";
     suggestion = "Balance your reading with a focused Session.";
-  } else if (timeTestedPercent < 20) {
+  } else if (journeyPercent < 20) {
     // Need more Journeys
-    suggestedMacro = "TIME_TESTED";
+    suggestedContentType = "JOURNEY";
     suggestion = "Make room for a deep Journey.";
   }
 
-  const suggestedItems = allQueued
-    .filter((i) => i.macro === suggestedMacro)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  let suggestedItems = allQueued
+    .filter((i) => i.contentType === suggestedContentType)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
     .slice(0, 3);
 
+  // Generate AI summaries for suggested items
+  const suggestedItemsWithSummaries = await Promise.all(
+    suggestedItems.map(async (item) => {
+      try {
+        // Check if summary exists and is still fresh (< 7 days old)
+        const dbItem = await prisma.item.findUnique({
+          where: { id: item.id },
+          select: {
+            aiSummary: true,
+            aiSummaryGeneratedAt: true,
+          },
+        });
+
+        if (
+          dbItem?.aiSummary &&
+          isSummaryCacheValid(dbItem.aiSummaryGeneratedAt)
+        ) {
+          // Use cached summary
+          return {
+            ...item,
+            aiSummary: dbItem.aiSummary,
+          };
+        }
+
+        // Generate new summary
+        const summary = await generateWhyReadThis(item, {
+          sprintPercent,
+          sessionPercent,
+          journeyPercent,
+          suggestion,
+          suggestedContentType,
+        });
+
+        // Save summary to database
+        await prisma.item.update({
+          where: { id: item.id },
+          data: {
+            aiSummary: summary,
+            aiSummaryGeneratedAt: new Date(),
+          },
+        });
+
+        return {
+          ...item,
+          aiSummary: summary,
+        };
+      } catch (error) {
+        console.error(`Failed to generate summary for item ${item.id}:`, error);
+        return {
+          ...item,
+          aiSummary: null,
+        };
+      }
+    }),
+  );
+
   const dashboardData = {
+    inProgressItems,
     allQueued,
-    suggestedItems,
+    suggestedItems: suggestedItemsWithSummaries,
     suggestion,
-    suggestedMacro,
+    suggestedContentType,
     dietData: {
-      snackMinutes: snackTime,
-      mealMinutes: mealTime,
-      timeTestedMinutes: timeTestedTime,
+      sprintMinutes: sprintTime,
+      sessionMinutes: sessionTime,
+      journeyMinutes: journeyTime,
       totalMinutes: totalTime,
     },
     readwiseConnected: !!readwiseSource?.readwiseToken,
@@ -260,7 +352,7 @@ export default async function AppHomePage() {
   };
 
   return (
-    <DashboardClient 
+    <DashboardClient
       data={dashboardData}
       markItemDone={markItemDone}
       recategorizeItem={recategorizeItem}

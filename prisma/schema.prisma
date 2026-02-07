@@ -87,8 +87,8 @@ model Item {
   author    String?
   publishedDate DateTime?
 
-  macro       MacroType     // @deprecated - use contentType instead
-  contentType ContentType?  // New time investment type
+  macro       MacroType?    // @deprecated - kept for backward compatibility during transition
+  contentType ContentType @default(SESSION) // New time investment type
   status      ItemStatus @default(QUEUED)
 
   readwiseDocumentId String?
@@ -116,6 +116,10 @@ model Item {
   estimatedMinutes Int?                   // Auto-calculated from pages/words
   progressMode     String? @default("pages") // "pages" | "sessions" | null
   wordCount        Int?                    // For articles/newsletters
+
+  // AI Summary fields
+  aiSummary            String?              // AI-generated "why you should read this"
+  aiSummaryGeneratedAt DateTime?            // When the summary was generated (for cache invalidation)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
