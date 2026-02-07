@@ -60,8 +60,39 @@ export function estimateProgressTime(
 }
 
 /**
+ * Retry configuration for API calls
+ */
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2,
+};
+
+/**
+ * Calculate exponential backoff delay
+ */
+function getBackoffDelay(attempt: number): number {
+  const delay = Math.min(
+    RETRY_CONFIG.initialDelayMs *
+      Math.pow(RETRY_CONFIG.backoffMultiplier, attempt),
+    RETRY_CONFIG.maxDelayMs,
+  );
+  // Add jitter to prevent thundering herd
+  return delay + Math.random() * delay * 0.1;
+}
+
+/**
+ * Sleep for specified milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Sync Readwise progress with app database
  * Fetches documents from Readwise and updates item statuses/progress
+ * Includes retry logic with exponential backoff for resilience
  */
 export async function syncReadwiseProgress(
   userId: string,
@@ -79,11 +110,41 @@ export async function syncReadwiseProgress(
   try {
     console.log(`[Readwise Sync] Starting sync for user ${userId}`);
 
-    // Fetch all documents from Readwise (both archive and active)
-    const allDocuments = await fetchReadwiseDocuments({
-      token: readwiseToken,
-      updatedAfter: lastSyncedAt?.toISOString(),
-    });
+    // Fetch all documents from Readwise with retry logic
+    let allDocuments: ReadwiseDocument[] = [];
+    let lastFetchError: Error | null = null;
+
+    for (let attempt = 0; attempt < RETRY_CONFIG.maxAttempts; attempt++) {
+      try {
+        allDocuments = await fetchReadwiseDocuments({
+          token: readwiseToken,
+          updatedAfter: lastSyncedAt?.toISOString(),
+        });
+        lastFetchError = null;
+        break;
+      } catch (error) {
+        lastFetchError =
+          error instanceof Error ? error : new Error(String(error));
+        console.warn(
+          `[Readwise Sync] Fetch attempt ${attempt + 1}/${RETRY_CONFIG.maxAttempts} failed:`,
+          lastFetchError.message,
+        );
+
+        if (attempt < RETRY_CONFIG.maxAttempts - 1) {
+          const delayMs = getBackoffDelay(attempt);
+          console.log(
+            `[Readwise Sync] Retrying in ${Math.round(delayMs)}ms...`,
+          );
+          await sleep(delayMs);
+        }
+      }
+    }
+
+    if (lastFetchError) {
+      throw new Error(
+        `Failed to fetch Readwise documents after ${RETRY_CONFIG.maxAttempts} attempts: ${lastFetchError.message}`,
+      );
+    }
 
     console.log(
       `[Readwise Sync] Fetched ${allDocuments.length} documents from Readwise`,

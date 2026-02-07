@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { MarkDoneButton } from "./mark-done-button";
 import { UpdateProgressButton } from "./update-progress-button";
@@ -91,6 +91,27 @@ export function DashboardClient({
     item.contentType === "JOURNEY" && item.totalPages && item.totalPages > 0;
   const hasProgressTracking = (item: Item) =>
     item.contentType === "JOURNEY" || item.contentType === "SESSION";
+
+  const handleReadwiseSync = useCallback(async () => {
+    const response = await fetch("/api/readwise/progress-sync", {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        data.error || `Sync failed with status ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+    if (!result.success && result.errors?.length > 0) {
+      throw new Error(result.errors[0] || "Sync completed with errors");
+    }
+
+    // Revalidate to refresh the dashboard with new data
+    window.location.reload();
+  }, []);
 
   const renderSuggestionView = () => (
     <div className="space-y-6">
@@ -202,6 +223,7 @@ export function DashboardClient({
           <SyncStatus
             lastSyncAt={lastReadwiseSyncAt}
             isConnected={readwiseConnected}
+            onSync={handleReadwiseSync}
           />
         </div>
       )}
