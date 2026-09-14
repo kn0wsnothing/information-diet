@@ -1,8 +1,8 @@
 [Unit]
-Description=Prepare Information Diet daily at 06:00 HKT
+Description=Prepare Information Diet daily by 06:00 HKT
 
 [Timer]
-OnCalendar=*-*-* 06:00:00 Asia/Hong_Kong
+OnCalendar=*-*-* 05:55:00 Asia/Hong_Kong
 Persistent=true
 Unit=information-diet-prepare.service
 

@@ -44,7 +44,7 @@ Run locally on the VPS loopback interface:
 INFORMATION_DIET_DB=$PWD/var/information-diet.sqlite3 INFORMATION_DIET_CATALOG=$PWD/var/catalog.json .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8412
 ```
 
-`/healthz` reports database availability. `/status` reports HKT list and catalog state. Install the user service and daily preparation timer with `deploy/install-user-service.sh`. The timer prepares the list every day at 06:00 Asia/Hong_Kong and runs a missed preparation after the user service manager returns:
+`/healthz` reports database availability. `/status` reports HKT list and catalog state. Install the user service and daily preparation timer with `deploy/install-user-service.sh`. The timer starts preparation every day at 05:55 Asia/Hong_Kong so the list is ready by 06:00. It runs a missed preparation after the user service manager returns:
 
 ```bash
 systemctl --user enable --now information-diet-prepare.timer
