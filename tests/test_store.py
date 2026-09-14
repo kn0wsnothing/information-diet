@@ -26,7 +26,7 @@ CATALOG = {
             "title": "A real inspected video",
             "summary": "A content summary.",
             "why": "A reason.",
-            "url": "https://read.readwise.io/read/video-1",
+            "url": "https://www.youtube.com/watch?v=video-1",
             "reader_url": "https://read.readwise.io/read/video-1",
             "source_url": "https://www.youtube.com/watch?v=video-1",
             "duration_minutes": 97,
@@ -43,7 +43,7 @@ CATALOG = {
             "title": "A second inspected video",
             "summary": "A second content summary.",
             "why": "A second reason.",
-            "url": "https://read.readwise.io/read/video-2",
+            "url": "https://www.youtube.com/watch?v=video-2",
             "reader_url": "https://read.readwise.io/read/video-2",
             "source_url": "https://www.youtube.com/watch?v=video-2",
             "duration_minutes": 45,
@@ -133,7 +133,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(pick["candidate_id"], "video-2")
         self.assertEqual(pick["state"], "active")
 
-    def test_refresh_hydrates_reader_link_without_resetting_progress(self):
+    def test_refresh_keeps_native_watch_link_without_resetting_progress(self):
         unsaved_video = {
             **CATALOG["candidates"][0],
             "url": CATALOG["candidates"][0]["source_url"],
@@ -143,9 +143,9 @@ class StoreTests(unittest.TestCase):
         self.store.generate("2026-09-14", unsaved_catalog, "now")
         self.store.feedback(1, "continue", video_timestamp="0:12:00", now="one")
 
-        self.assertTrue(self.store.generate("2026-09-14", CATALOG, "two", refresh=True))
+        self.assertFalse(self.store.generate("2026-09-14", CATALOG, "two", refresh=True))
         pick = self.store.get_list("2026-09-14")["picks"][0]
-        self.assertEqual(pick["url"], CATALOG["candidates"][0]["reader_url"])
+        self.assertEqual(pick["url"], CATALOG["candidates"][0]["source_url"])
         self.assertEqual(pick["state"], "continue")
         self.assertEqual(pick["last_video_timestamp"], "0:12:00")
 
@@ -221,6 +221,18 @@ class StoreTests(unittest.TestCase):
         youtube = {**CATALOG, "candidates": [{**CATALOG["candidates"][0], "url": "https://youtube.com/watch?v=no"}]}
         with self.assertRaises(ValueError):
             validate_catalog(youtube)
+        vimeo = {
+            **CATALOG,
+            "candidates": [
+                {
+                    **CATALOG["candidates"][0],
+                    "url": "https://vimeo.com/123",
+                    "source_url": "https://vimeo.com/123",
+                }
+            ],
+        }
+        with self.assertRaises(ValueError):
+            validate_catalog(vimeo)
         unsaved = {
             **CATALOG,
             "candidates": [
@@ -228,6 +240,134 @@ class StoreTests(unittest.TestCase):
             ],
         }
         validate_catalog(unsaved)
+
+    def test_video_note_persists_without_changing_recommendations(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        before = self.store.get_list("2026-09-14")
+        self.store.save_video_note(1, "video-1", "A useful idea", "now")
+        reopened = Store(self.db)
+        after = reopened.get_list("2026-09-14")
+        self.assertEqual(after["picks"][0]["latest_note"], "A useful idea")
+        self.assertEqual(after["picks"][0]["state"], before["picks"][0]["state"])
+        self.assertEqual(after["picks"][1]["candidate_id"], before["picks"][1]["candidate_id"])
+        with sqlite3.connect(self.db) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM feedback").fetchone()[0], 0)
+
+    def test_video_note_follows_a_carried_video_and_can_be_cleared(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.save_video_note(1, "video-1", "Carry this idea", "one")
+        self.store.feedback(1, "continue", now="two", expected_candidate_id="video-1")
+        self.store.generate("2026-09-15", CATALOG, "three")
+        carried = self.store.get_list("2026-09-15")["picks"][0]
+        self.assertEqual(carried["candidate_id"], "video-1")
+        self.assertEqual(carried["latest_note"], "Carry this idea")
+        self.store.save_video_note(carried["id"], "video-1", "", "four")
+        self.assertEqual(self.store.get_list("2026-09-15")["picks"][0]["latest_note"], "")
+
+    def test_stale_video_note_is_rejected(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.feedback(1, "not_started", now="one", expected_candidate_id="video-1")
+        self.store.generate("2026-09-14", CATALOG, "two", refresh=True)
+        with self.assertRaises(ValueError):
+            self.store.save_video_note(1, "video-1", "stale", "three")
+
+    def test_snipd_route_is_persistent_and_honest(self):
+        show = "https://share.snipd.com/show/synthetic"
+        catalog = {
+            **CATALOG,
+            "candidates": [
+                {**CATALOG["candidates"][0], "snipd_url": show, "snipd_direct": False},
+                *CATALOG["candidates"][1:],
+            ],
+        }
+        validate_catalog(catalog)
+        self.store.generate("2026-09-14", catalog, "now")
+        self.assertEqual(self.store.get_list("2026-09-14")["picks"][0]["snipd_url"], show)
+        self.assertFalse(self.store.get_list("2026-09-14")["picks"][0]["snipd_direct"])
+
+    def test_snipd_direct_requires_an_exact_episode_share_url(self):
+        invalid_direct = {
+            **CATALOG,
+            "candidates": [
+                {
+                    **CATALOG["candidates"][0],
+                    "snipd_url": "https://share.snipd.com/show/synthetic",
+                    "snipd_direct": True,
+                }
+            ],
+        }
+        with self.assertRaises(ValueError):
+            validate_catalog(invalid_direct)
+        invalid_host = {
+            **CATALOG,
+            "candidates": [
+                {
+                    **CATALOG["candidates"][0],
+                    "snipd_url": "https://example.com/episode/synthetic",
+                    "snipd_direct": True,
+                }
+            ],
+        }
+        with self.assertRaises(ValueError):
+            validate_catalog(invalid_host)
+
+
+class LegacySchemaMigrationTests(unittest.TestCase):
+    def test_setup_preserves_existing_runtime_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "legacy.sqlite3"
+            with sqlite3.connect(database) as connection:
+                connection.executescript(
+                    """
+                    CREATE TABLE daily_lists (
+                      date TEXT PRIMARY KEY, created_at TEXT NOT NULL, status TEXT NOT NULL,
+                      source_status TEXT NOT NULL, source_message TEXT, book_target INTEGER
+                    );
+                    CREATE TABLE picks (
+                      id INTEGER PRIMARY KEY, list_date TEXT NOT NULL REFERENCES daily_lists(date),
+                      slot TEXT NOT NULL, candidate_id TEXT, title TEXT NOT NULL, kind TEXT NOT NULL,
+                      summary TEXT, why TEXT, url TEXT, duration_minutes INTEGER, podcast_url TEXT,
+                      podcast_verified INTEGER NOT NULL DEFAULT 0, stopping_point TEXT, provenance TEXT,
+                      inspection_method TEXT, inspected_at TEXT, state TEXT NOT NULL DEFAULT 'active',
+                      last_video_timestamp TEXT, UNIQUE(list_date, slot)
+                    );
+                    CREATE TABLE feedback (
+                      id INTEGER PRIMARY KEY, pick_id INTEGER NOT NULL REFERENCES picks(id),
+                      disposition TEXT NOT NULL, candidate_id TEXT, reason TEXT, video_timestamp TEXT,
+                      book_page INTEGER, created_at TEXT NOT NULL
+                    );
+                    CREATE TABLE books (
+                      id INTEGER PRIMARY KEY CHECK(id=1), nonfiction_title TEXT NOT NULL, author TEXT,
+                      total_pages INTEGER, reported_page INTEGER NOT NULL, daily_pace INTEGER NOT NULL,
+                      fiction_title TEXT
+                    );
+                    INSERT INTO daily_lists VALUES ('2026-09-14','then','ready','ok',NULL,53);
+                    INSERT INTO picks VALUES (1,'2026-09-14','lunch','video-1','Video','video',NULL,NULL,
+                      'https://www.youtube.com/watch?v=video-1',97,NULL,0,NULL,NULL,NULL,NULL,'continue','0:12:00');
+                    INSERT INTO feedback VALUES (1,1,'continue','video-1','good','0:12:00',NULL,'then');
+                    INSERT INTO books VALUES (1,'Book','Author',385,46,7,'Fiction');
+                    """
+                )
+
+            Store(database).setup()
+
+            with sqlite3.connect(database) as connection:
+                connection.row_factory = sqlite3.Row
+                pick = connection.execute("SELECT * FROM picks WHERE id=1").fetchone()
+                feedback = connection.execute("SELECT * FROM feedback WHERE id=1").fetchone()
+                book = connection.execute("SELECT * FROM books WHERE id=1").fetchone()
+                self.assertEqual(pick["candidate_id"], "video-1")
+                self.assertEqual(pick["state"], "continue")
+                self.assertEqual(pick["last_video_timestamp"], "0:12:00")
+                self.assertIsNone(pick["snipd_url"])
+                self.assertEqual(pick["snipd_direct"], 0)
+                self.assertEqual(feedback["reason"], "good")
+                self.assertEqual(book["reported_page"], 46)
+                self.assertIsNotNone(
+                    connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='video_notes'"
+                    ).fetchone()
+                )
 
 
 class CatalogRefreshTests(unittest.TestCase):

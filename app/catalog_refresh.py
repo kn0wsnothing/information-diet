@@ -58,13 +58,13 @@ def validate_manifest(manifest: dict, read_text=Path.read_text, url_checker=defa
         missing = [term for term in terms if term.casefold() not in text.casefold()]
         if len(words) < minimum_words or missing:
             raise ValueError(f"inspection evidence failed for {candidate.get('id', 'candidate')}")
-        # A saved video validates both its Reader destination and original source.
-        # An unsaved discovery validates its original source and remains eligible.
+        # The original source is the public watch action. Reader provenance, when
+        # present, is separately verified and stays out of the rendered watch URL.
         if candidate.get("kind") == "video":
             fields = (
-                ("source_url", "reader_url", "podcast_url")
+                ("source_url", "reader_url", "podcast_url", "snipd_url")
                 if candidate.get("reader_url")
-                else ("source_url", "podcast_url")
+                else ("source_url", "podcast_url", "snipd_url")
             )
         else:
             fields = ("url", "podcast_url")

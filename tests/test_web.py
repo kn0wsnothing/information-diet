@@ -17,7 +17,7 @@ CANDIDATE = {
     "kind": "video",
     "summary": "Inspected content summary.",
     "why": "A useful reason.",
-    "url": "https://read.readwise.io/read/video-fixture",
+    "url": "https://www.youtube.com/watch?v=fixture",
     "reader_url": "https://read.readwise.io/read/video-fixture",
     "source_url": "https://www.youtube.com/watch?v=fixture",
     "duration_minutes": 20,
@@ -33,7 +33,7 @@ CATALOG = {
             **CANDIDATE,
             "id": "video-2",
             "title": "Second video",
-            "url": "https://read.readwise.io/read/video-fixture-2",
+            "url": "https://www.youtube.com/watch?v=fixture-2",
             "reader_url": "https://read.readwise.io/read/video-fixture-2",
             "source_url": "https://www.youtube.com/watch?v=fixture-2",
         },
@@ -83,7 +83,7 @@ class WebTests(unittest.TestCase):
         self.assertEqual(pick["candidate_id"], "video-2")
         self.assertEqual(pick["state"], "active")
 
-    def test_video_template_has_saved_and_unsaved_reader_states(self):
+    def test_video_template_has_youtube_note_and_snipd_states(self):
         template = web.templates.get_template("home.html")
         base_pick = {
             **CANDIDATE,
@@ -101,14 +101,16 @@ class WebTests(unittest.TestCase):
             "csrf": "test-token",
         }
 
-        saved = template.render(**context)
-        self.assertIn(f'href="{CANDIDATE["reader_url"]}"', saved)
-        self.assertIn("Open in Reader", saved)
-        self.assertNotIn(CANDIDATE["source_url"], saved)
-
-        unsaved_pick = {**base_pick, "url": base_pick["source_url"], "reader_url": None}
-        unsaved = template.render(**{**context, "daily": {**context["daily"], "picks": [unsaved_pick]}})
-        self.assertIn("Add to Reader first", unsaved)
-        self.assertIn("YouTube source to save in Reader", unsaved)
-        self.assertIn(f'href="{unsaved_pick["source_url"]}"', unsaved)
-        self.assertNotIn("Open watch", unsaved)
+        base_pick["snipd_url"] = "https://share.snipd.com/show/synthetic"
+        base_pick["snipd_direct"] = False
+        base_pick["podcast_url"] = "https://podcasts.example.test/episode"
+        base_pick["podcast_verified"] = True
+        rendered = template.render(**context)
+        self.assertIn(f'href="{CANDIDATE["source_url"]}"', rendered)
+        self.assertIn("Watch on YouTube", rendered)
+        self.assertIn("Video notes or ideas", rendered)
+        self.assertIn("Find this episode in Snipd", rendered)
+        self.assertIn("Verified podcast listing", rendered)
+        direct = {**base_pick, "snipd_direct": True}
+        direct_html = template.render(**{**context, "daily": {**context["daily"], "picks": [direct]}})
+        self.assertIn("Listen in Snipd", direct_html)

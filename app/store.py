@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS daily_lists (
 CREATE TABLE IF NOT EXISTS picks (
   id INTEGER PRIMARY KEY, list_date TEXT NOT NULL REFERENCES daily_lists(date), slot TEXT NOT NULL,
   candidate_id TEXT, title TEXT NOT NULL, kind TEXT NOT NULL, summary TEXT, why TEXT, url TEXT,
-  duration_minutes INTEGER, podcast_url TEXT, podcast_verified INTEGER NOT NULL DEFAULT 0,
+  duration_minutes INTEGER, podcast_url TEXT, podcast_verified INTEGER NOT NULL DEFAULT 0, snipd_url TEXT, snipd_direct INTEGER NOT NULL DEFAULT 0,
   stopping_point TEXT, provenance TEXT, inspection_method TEXT, inspected_at TEXT,
   state TEXT NOT NULL DEFAULT 'active', last_video_timestamp TEXT, UNIQUE(list_date, slot)
 );
@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS feedback (
 CREATE TABLE IF NOT EXISTS books (
   id INTEGER PRIMARY KEY CHECK(id=1), nonfiction_title TEXT NOT NULL, author TEXT, total_pages INTEGER,
   reported_page INTEGER NOT NULL, daily_pace INTEGER NOT NULL, fiction_title TEXT
+);
+CREATE TABLE IF NOT EXISTS video_notes (
+  id INTEGER PRIMARY KEY, pick_id INTEGER NOT NULL REFERENCES picks(id), candidate_id TEXT NOT NULL,
+  note TEXT NOT NULL, created_at TEXT NOT NULL
 );
 """
 
@@ -55,6 +59,10 @@ class Store:
             pick_columns = {r[1] for r in conn.execute("PRAGMA table_info(picks)")}
             if "last_video_timestamp" not in pick_columns:
                 conn.execute("ALTER TABLE picks ADD COLUMN last_video_timestamp TEXT")
+            if "snipd_url" not in pick_columns:
+                conn.execute("ALTER TABLE picks ADD COLUMN snipd_url TEXT")
+            if "snipd_direct" not in pick_columns:
+                conn.execute("ALTER TABLE picks ADD COLUMN snipd_direct INTEGER NOT NULL DEFAULT 0")
             feedback_columns = {r[1] for r in conn.execute("PRAGMA table_info(feedback)")}
             if "candidate_id" not in feedback_columns:
                 conn.execute("ALTER TABLE feedback ADD COLUMN candidate_id TEXT")
@@ -90,7 +98,11 @@ class Store:
             daily = c.execute("SELECT * FROM daily_lists WHERE date=?", (day,)).fetchone()
             if not daily:
                 return None
-            picks = c.execute("SELECT * FROM picks WHERE list_date=? ORDER BY id", (day,)).fetchall()
+            picks = c.execute(
+                """SELECT p.*, (SELECT note FROM video_notes n WHERE n.candidate_id=p.candidate_id ORDER BY n.id DESC LIMIT 1) AS latest_note
+                FROM picks p WHERE list_date=? ORDER BY id""",
+                (day,),
+            ).fetchall()
             result = dict(daily)
             result["picks"] = [dict(x) for x in picks]
             return result
@@ -139,6 +151,22 @@ class Store:
                 ):
                     raise ValueError("invalid book page")
                 c.execute("UPDATE books SET reported_page=? WHERE id=1", (int(book_page),))
+
+    def save_video_note(self, pick_id, candidate_id, note, now):
+        if not isinstance(note, str):
+            raise ValueError("A note must be text")
+        with self.tx() as c:
+            pick = c.execute("SELECT candidate_id, kind FROM picks WHERE id=?", (pick_id,)).fetchone()
+            if not pick:
+                raise KeyError("pick not found")
+            if pick["candidate_id"] != candidate_id:
+                raise ValueError("This recommendation changed. Reload before saving a note.")
+            if pick["kind"] != "video":
+                raise ValueError("Notes are available for videos only")
+            c.execute(
+                "INSERT INTO video_notes(pick_id,candidate_id,note,created_at) VALUES (?,?,?,?)",
+                (pick_id, candidate_id, note.strip(), now),
+            )
 
     def rejected_ids(self):
         with sqlite3.connect(self.path) as c:
@@ -304,12 +332,14 @@ class Store:
             "duration_minutes",
             "podcast_url",
             "podcast_verified",
+            "snipd_url",
+            "snipd_direct",
             "stopping_point",
             "provenance",
             "inspection_method",
             "inspected_at",
         )
-        values = [item.get(field, 0 if field == "podcast_verified" else None) for field in fields]
+        values = [item.get(field, 0 if field in {"podcast_verified", "snipd_direct"} else None) for field in fields]
         if all(pick[field] == value for field, value in zip(fields, values, strict=True)):
             return False
         assignments = ",".join(f"{field}=?" for field in fields)
@@ -318,8 +348,8 @@ class Store:
 
     def _insert_pick(self, c, day, slot, item, state):
         c.execute(
-            """INSERT INTO picks(list_date,slot,candidate_id,title,kind,summary,why,url,duration_minutes,podcast_url,podcast_verified,stopping_point,provenance,inspection_method,inspected_at,state,last_video_timestamp)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            """INSERT INTO picks(list_date,slot,candidate_id,title,kind,summary,why,url,duration_minutes,podcast_url,podcast_verified,snipd_url,snipd_direct,stopping_point,provenance,inspection_method,inspected_at,state,last_video_timestamp)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 day,
                 slot,
@@ -332,6 +362,8 @@ class Store:
                 item.get("duration_minutes"),
                 item.get("podcast_url"),
                 item.get("podcast_verified", 0),
+                item.get("snipd_url"),
+                item.get("snipd_direct", 0),
                 item.get("stopping_point"),
                 item.get("provenance"),
                 item.get("inspection_method"),
@@ -343,7 +375,7 @@ class Store:
 
     def _replace_pick(self, c, pick_id, item):
         c.execute(
-            """UPDATE picks SET candidate_id=?,title=?,summary=?,why=?,url=?,duration_minutes=?,podcast_url=?,podcast_verified=?,stopping_point=?,provenance=?,inspection_method=?,inspected_at=?,state='active',last_video_timestamp=NULL WHERE id=?""",
+            """UPDATE picks SET candidate_id=?,title=?,summary=?,why=?,url=?,duration_minutes=?,podcast_url=?,podcast_verified=?,snipd_url=?,snipd_direct=?,stopping_point=?,provenance=?,inspection_method=?,inspected_at=?,state='active',last_video_timestamp=NULL WHERE id=?""",
             (
                 item["id"],
                 item["title"],
@@ -353,6 +385,8 @@ class Store:
                 item.get("duration_minutes"),
                 item.get("podcast_url"),
                 item.get("podcast_verified", 0),
+                item.get("snipd_url"),
+                item.get("snipd_direct", 0),
                 item.get("stopping_point"),
                 item.get("provenance"),
                 item.get("inspection_method"),

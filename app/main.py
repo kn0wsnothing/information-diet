@@ -98,6 +98,21 @@ def submit_feedback(
     return RedirectResponse("/", status_code=303)
 
 
+@app.post("/video-note/{pick_id}")
+def save_video_note(
+    pick_id: int,
+    note: str = Form(...),
+    candidate_id: str = Form(...),
+    csrf_token: str = Form(...),
+):
+    csrf(csrf_token)
+    try:
+        store().save_video_note(pick_id, candidate_id, note, datetime.now(HKT).isoformat())
+    except (KeyError, ValueError) as error:
+        raise HTTPException(400, str(error))
+    return RedirectResponse("/", status_code=303)
+
+
 @app.post("/book-position")
 def book_position(book_page: int = Form(...), csrf_token: str = Form(...)):
     csrf(csrf_token)
