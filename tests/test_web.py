@@ -106,6 +106,7 @@ class WebTests(unittest.TestCase):
         base_pick["snipd_direct"] = False
         base_pick["podcast_url"] = "https://podcasts.example.test/episode"
         base_pick["podcast_verified"] = True
+        base_pick["note_history"] = [{"note": "Earlier idea", "created_at": "2026-09-14T10:00:00+08:00"}]
         rendered = template.render(**context)
         self.assertIn(f'href="{CANDIDATE["source_url"]}"', rendered)
         self.assertIn("Watch on YouTube", rendered)
@@ -113,6 +114,12 @@ class WebTests(unittest.TestCase):
         self.assertIn("Find this episode in Snipd", rendered)
         self.assertIn("Verified podcast listing", rendered)
         self.assertIn('role="status">Note saved.</span>', rendered)
+        self.assertIn("Earlier idea", rendered)
+        self.assertIn("Saved notes", rendered)
+        self.assertIn('datetime="2026-09-14T10:00:00+08:00">2026-09-14 10:00</time>', rendered)
+        self.assertIn('textarea name="note" rows="3" required></textarea>', rendered)
+        self.assertNotIn('textarea name="note" rows="3">Earlier idea', rendered)
+        self.assertEqual(rendered.count('target="_blank" rel="noopener noreferrer"'), 3)
         direct = {**base_pick, "snipd_direct": True}
         direct_html = template.render(**{**context, "daily": {**context["daily"], "picks": [direct]}})
         self.assertIn("Listen in Snipd", direct_html)
@@ -126,4 +133,4 @@ class WebTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers["location"], "/?note_saved=1#video-note-1")
-        self.assertEqual(self.store.get_list("2026-09-14")["picks"][0]["latest_note"], "A saved idea")
+        self.assertEqual(self.store.get_list("2026-09-14")["picks"][0]["note_history"][0]["note"], "A saved idea")

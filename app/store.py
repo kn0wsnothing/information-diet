@@ -98,13 +98,19 @@ class Store:
             daily = c.execute("SELECT * FROM daily_lists WHERE date=?", (day,)).fetchone()
             if not daily:
                 return None
-            picks = c.execute(
-                """SELECT p.*, (SELECT note FROM video_notes n WHERE n.candidate_id=p.candidate_id ORDER BY n.id DESC LIMIT 1) AS latest_note
-                FROM picks p WHERE list_date=? ORDER BY id""",
-                (day,),
-            ).fetchall()
+            picks = c.execute("SELECT * FROM picks WHERE list_date=? ORDER BY id", (day,)).fetchall()
             result = dict(daily)
             result["picks"] = [dict(x) for x in picks]
+            for pick in result["picks"]:
+                pick["note_history"] = []
+                if pick["kind"] == "video":
+                    pick["note_history"] = [
+                        dict(note)
+                        for note in c.execute(
+                            "SELECT note, created_at FROM video_notes WHERE candidate_id=? AND note<>'' ORDER BY id DESC",
+                            (pick["candidate_id"],),
+                        )
+                    ]
             return result
 
     def latest_list(self):
@@ -153,8 +159,8 @@ class Store:
                 c.execute("UPDATE books SET reported_page=? WHERE id=1", (int(book_page),))
 
     def save_video_note(self, pick_id, candidate_id, note, now):
-        if not isinstance(note, str):
-            raise ValueError("A note must be text")
+        if not isinstance(note, str) or not note.strip():
+            raise ValueError("A note cannot be empty")
         with self.tx() as c:
             pick = c.execute("SELECT candidate_id, kind FROM picks WHERE id=?", (pick_id,)).fetchone()
             if not pick:

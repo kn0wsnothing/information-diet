@@ -247,22 +247,34 @@ class StoreTests(unittest.TestCase):
         self.store.save_video_note(1, "video-1", "A useful idea", "now")
         reopened = Store(self.db)
         after = reopened.get_list("2026-09-14")
-        self.assertEqual(after["picks"][0]["latest_note"], "A useful idea")
+        self.assertEqual(after["picks"][0]["note_history"][0]["note"], "A useful idea")
         self.assertEqual(after["picks"][0]["state"], before["picks"][0]["state"])
         self.assertEqual(after["picks"][1]["candidate_id"], before["picks"][1]["candidate_id"])
         with sqlite3.connect(self.db) as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM feedback").fetchone()[0], 0)
 
-    def test_video_note_follows_a_carried_video_and_can_be_cleared(self):
+    def test_video_note_history_is_newest_first_and_candidate_scoped(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.save_video_note(1, "video-1", "First note", "2026-09-14T10:00:00+08:00")
+        self.store.save_video_note(1, "video-1", "Second note", "2026-09-14T11:00:00+08:00")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        carried = self.store.get_list("2026-09-15")["picks"][0]
+        self.assertEqual([entry["note"] for entry in carried["note_history"]], ["Second note", "First note"])
+
+    def test_video_note_follows_a_carried_video_and_blank_is_rejected(self):
         self.store.generate("2026-09-14", CATALOG, "now")
         self.store.save_video_note(1, "video-1", "Carry this idea", "one")
         self.store.feedback(1, "continue", now="two", expected_candidate_id="video-1")
         self.store.generate("2026-09-15", CATALOG, "three")
         carried = self.store.get_list("2026-09-15")["picks"][0]
         self.assertEqual(carried["candidate_id"], "video-1")
-        self.assertEqual(carried["latest_note"], "Carry this idea")
-        self.store.save_video_note(carried["id"], "video-1", "", "four")
-        self.assertEqual(self.store.get_list("2026-09-15")["picks"][0]["latest_note"], "")
+        self.assertEqual(carried["note_history"][0]["note"], "Carry this idea")
+        with self.assertRaises(ValueError):
+            self.store.save_video_note(carried["id"], "video-1", "", "four")
+        self.assertEqual(
+            [entry["note"] for entry in self.store.get_list("2026-09-15")["picks"][0]["note_history"]],
+            ["Carry this idea"],
+        )
 
     def test_stale_video_note_is_rejected(self):
         self.store.generate("2026-09-14", CATALOG, "now")
