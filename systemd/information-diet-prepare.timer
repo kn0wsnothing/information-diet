@@ -1,8 +1,7 @@
 [Unit]
-Description=Disabled template: schedule only after John supplies an HKT readiness time
+Description=Prepare Information Diet daily at 06:00 HKT
 
 [Timer]
-# Set OnCalendar to the agreed Asia/Hong_Kong time before enabling.
 OnCalendar=*-*-* 06:00:00 Asia/Hong_Kong
 Persistent=true
 Unit=information-diet-prepare.service
