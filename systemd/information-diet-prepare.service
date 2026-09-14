@@ -1,0 +1,8 @@
+[Unit]
+Description=Prepare Information Diet daily list
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/john/information-diet
+EnvironmentFile=/home/john/information-diet/var/runtime.env
+ExecStart=/home/john/information-diet/.venv/bin/python -m scripts.prepare_daily --db /home/john/information-diet/var/information-diet.sqlite3 --catalog /home/john/information-diet/var/catalog.json --manifest /home/john/information-diet/var/source-manifest.json

@@ -1,0 +1,14 @@
+[Unit]
+Description=Private Information Diet web application
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/john/information-diet
+EnvironmentFile=/home/john/information-diet/var/runtime.env
+ExecStart=/home/john/information-diet/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8412
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

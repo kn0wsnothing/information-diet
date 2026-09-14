@@ -48,6 +48,10 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+/var/
+/.venv/
+__pycache__/
+.pytest_cache/
 
 # IDE
 .vscode/

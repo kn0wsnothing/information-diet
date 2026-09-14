@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Information Diet
 
-## Getting Started
+Private, loopback-only daily reading, watching, and listening page. It is a small FastAPI application with SQLite state in `var/`, which is intentionally ignored by Git.
 
-First, run the development server:
+## First version
+
+- A prepared HKT daily list persists through reloads and restarts.
+- Feedback is independent from generation. It never replaces other same-day picks.
+- An unfinished lunch video carries forward. `Didn't start` defers it once without rejecting it. Completion does not fill the slot again that day.
+- The short read is optional. It can be omitted when feedback leaves no suitable inspected candidate.
+- Nonfiction targets are saved when a day is prepared. They use reported pages and no catch-up debt.
+- Fiction is displayed as optional and untracked.
+- Each candidate requires an inspected content summary, rationale, direct link, inspection method/date, and provenance. Podcast links require explicit verification.
+- If source input fails, the page serves the last usable dated list and reports the failure.
+
+## Private runtime setup
+
+Create a virtual environment and install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `var/runtime.env`, `var/source-manifest.json`, and `var/catalog.json` locally. Do not commit any of them. The manifest adds an `inspection` object to each candidate with a private local `source_path`, `minimum_words`, and `evidence_terms`. Refresh verifies that source text and each direct URL before atomically writing the catalog. The resulting `catalog.json` has this shape:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```json
+{"book":{"nonfiction_title":"…","reported_page":0,"daily_pace":7,"fiction_title":"…"},"candidates":[{"id":"…","kind":"video","title":"…","summary":"content-based summary","why":"why it matters","url":"https://…","duration_minutes":60,"inspection_method":"full transcript","inspected_at":"2026-09-14T00:00:00Z","provenance":"private source note"}]}
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use the canonical reading records to create the private catalog. Only use sources whose content has been inspected. The application does not store the source text, credentials, or personal inventory in Git.
 
-## Learn More
+Prepare a list explicitly:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+.venv/bin/python -m scripts.prepare_daily --db var/information-diet.sqlite3 --catalog var/catalog.json --manifest var/source-manifest.json
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run locally on the VPS loopback interface:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+INFORMATION_DIET_DB=$PWD/var/information-diet.sqlite3 INFORMATION_DIET_CATALOG=$PWD/var/catalog.json .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8412
+```
 
-## Deploy on Vercel
+`/healthz` reports database availability. `/status` reports HKT list and catalog state. Install the user service with `deploy/install-user-service.sh`. The supplied preparation timer is a disabled template. Set the exact Hong Kong readiness time, then enable it deliberately:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+systemctl --user enable --now information-diet-prepare.timer
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Checks
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests use only synthetic fixtures. Roll back the deployed code by checking out the prior Git reference, then run `systemctl --user restart information-diet.service`. Runtime SQLite state remains untouched unless an operator explicitly replaces it.

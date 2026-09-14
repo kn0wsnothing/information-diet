@@ -1,5 +1,7 @@
 # Information Diet - User Journey & Product Vision
 
+> Historical record. This product model is superseded by the private daily-page design documented in `README.md`.
+
 ## Ideal User Profile
 **English-speaking knowledge workers** (analysts, writers, PMs) who:
 - Have 100+ saved items in Readwise/Instapaper/Bookmarks
