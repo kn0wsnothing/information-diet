@@ -244,14 +244,9 @@ class Store:
                 "INSERT INTO daily_lists(date,created_at,status,book_target) VALUES (?,?, 'ready',?)",
                 (day, now, target),
             )
-            # An unanswered or explicitly continued video carries forward. A plain
-            # "didn't start" response does not become backlog or imply dislike.
-            carry = c.execute("""SELECT p.* FROM picks p WHERE p.slot='lunch' AND p.state IN ('active','continue')
-                AND COALESCE((SELECT f.disposition FROM feedback f
-                    WHERE f.pick_id=p.id AND f.candidate_id=p.candidate_id
-                    ORDER BY f.id DESC LIMIT 1), '') IN ('','continue')
-                AND NOT EXISTS (SELECT 1 FROM picks later WHERE later.slot='lunch' AND later.candidate_id=p.candidate_id AND later.list_date>p.list_date)
-                ORDER BY p.list_date DESC LIMIT 1""").fetchone()
+            # Every unresolved slot carries. A plain "didn't start" is neither a
+            # rejection nor backlog: the new day may select a different candidate.
+            carry = self._carry_for_slot(c, "lunch", day)
             if carry:
                 self._insert_pick(c, day, "lunch", dict(carry), "active")
             else:
@@ -264,16 +259,32 @@ class Store:
                 ]
                 if videos:
                     self._insert_pick(c, day, "lunch", videos[0], "active")
-            excluded = self._excluded_ids(c)
-            deferred = self._temporarily_deferred_ids(c, day)
-            reads = [
-                x
-                for x in catalog["candidates"]
-                if x["kind"] == "read" and x["id"] not in excluded and x["id"] not in deferred
-            ]
-            if reads:
-                self._insert_pick(c, day, "gap_read", reads[0], "active")
+            carry = self._carry_for_slot(c, "gap_read", day)
+            if carry:
+                self._insert_pick(c, day, "gap_read", dict(carry), "active")
+            else:
+                excluded = self._excluded_ids(c)
+                deferred = self._temporarily_deferred_ids(c, day)
+                reads = [
+                    x
+                    for x in catalog["candidates"]
+                    if x["kind"] == "read" and x["id"] not in excluded and x["id"] not in deferred
+                ]
+                if reads:
+                    self._insert_pick(c, day, "gap_read", reads[0], "active")
             return True
+
+    def _carry_for_slot(self, c, slot, day):
+        return c.execute(
+            """SELECT p.* FROM picks p WHERE p.slot=? AND p.list_date < ? AND p.state IN ('active','continue')
+                AND COALESCE((SELECT f.disposition FROM feedback f
+                    WHERE f.pick_id=p.id AND f.candidate_id=p.candidate_id
+                    ORDER BY f.id DESC LIMIT 1), '') IN ('','continue')
+                AND NOT EXISTS (SELECT 1 FROM picks later WHERE later.slot=p.slot AND later.candidate_id=p.candidate_id
+                    AND later.list_date>p.list_date AND later.list_date<?)
+                ORDER BY p.list_date DESC LIMIT 1""",
+            (slot, day, day),
+        ).fetchone()
 
     def _excluded_ids(self, c):
         return {

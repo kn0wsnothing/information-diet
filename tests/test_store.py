@@ -62,6 +62,17 @@ CATALOG = {
             "inspected_at": "2026-09-14T00:00:00Z",
             "provenance": "operator",
         },
+        {
+            "id": "read-2",
+            "kind": "read",
+            "title": "A second inspected read",
+            "summary": "Another content summary.",
+            "why": "Another reason.",
+            "url": "https://example.test/read-2",
+            "inspection_method": "full text",
+            "inspected_at": "2026-09-14T00:00:00Z",
+            "provenance": "operator",
+        },
     ],
 }
 
@@ -157,6 +168,38 @@ class StoreTests(unittest.TestCase):
         }
         self.store.generate("2026-09-15", reordered, "now")
         self.assertEqual(self.store.get_list("2026-09-15")["picks"][0]["candidate_id"], "video-1")
+
+    def test_unanswered_short_read_carries_in_its_slot(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        self.assertEqual(self.store.get_list("2026-09-15")["picks"][1]["candidate_id"], "read-1")
+
+    def test_historical_generation_ignores_future_carries(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.feedback(1, "continue", video_timestamp="0:10:00", now="now")
+        self.store.generate("2026-09-16", CATALOG, "now")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        historical = self.store.get_list("2026-09-15")["picks"][0]
+        self.assertEqual(historical["candidate_id"], "video-1")
+        self.assertEqual(historical["last_video_timestamp"], "0:10:00")
+
+    def test_continue_short_read_carries_in_its_slot(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.feedback(2, "continue", now="now")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        self.assertEqual(self.store.get_list("2026-09-15")["picks"][1]["candidate_id"], "read-1")
+
+    def test_resolved_short_read_does_not_carry(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.feedback(2, "completed", now="now")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        self.assertEqual(self.store.get_list("2026-09-15")["picks"][1]["candidate_id"], "read-2")
+
+    def test_not_started_short_read_can_change_without_dislike(self):
+        self.store.generate("2026-09-14", CATALOG, "now")
+        self.store.feedback(2, "not_started", now="now")
+        self.store.generate("2026-09-15", CATALOG, "now")
+        self.assertEqual(self.store.get_list("2026-09-15")["picks"][1]["candidate_id"], "read-2")
 
     def test_not_started_does_not_become_next_day_backlog(self):
         self.store.generate("2026-09-14", CATALOG, "now")

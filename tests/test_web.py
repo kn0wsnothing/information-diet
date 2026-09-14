@@ -110,6 +110,7 @@ class WebTests(unittest.TestCase):
         rendered = template.render(**context)
         self.assertIn(f'href="{CANDIDATE["source_url"]}"', rendered)
         self.assertIn("Watch on YouTube", rendered)
+        self.assertIn("Started / keep this", rendered)
         self.assertIn("Video notes or ideas", rendered)
         self.assertIn("Find this episode in Snipd", rendered)
         self.assertIn("Verified podcast listing", rendered)
