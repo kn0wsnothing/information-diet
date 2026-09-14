@@ -99,6 +99,7 @@ class WebTests(unittest.TestCase):
             "book": BOOK,
             "today": "2026-09-14",
             "csrf": "test-token",
+            "note_saved_pick_id": 1,
         }
 
         base_pick["snipd_url"] = "https://share.snipd.com/show/synthetic"
@@ -111,6 +112,18 @@ class WebTests(unittest.TestCase):
         self.assertIn("Video notes or ideas", rendered)
         self.assertIn("Find this episode in Snipd", rendered)
         self.assertIn("Verified podcast listing", rendered)
+        self.assertIn('role="status">Note saved.</span>', rendered)
         direct = {**base_pick, "snipd_direct": True}
         direct_html = template.render(**{**context, "daily": {**context["daily"], "picks": [direct]}})
         self.assertIn("Listen in Snipd", direct_html)
+
+    def test_video_note_save_redirects_to_visible_confirmation(self):
+        response = web.save_video_note(
+            pick_id=1,
+            note="A saved idea",
+            candidate_id="video-1",
+            csrf_token="test-token",
+        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/?note_saved=1#video-note-1")
+        self.assertEqual(self.store.get_list("2026-09-14")["picks"][0]["latest_note"], "A saved idea")

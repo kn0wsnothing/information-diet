@@ -54,6 +54,7 @@ def status():
 def home(request: Request):
     current = store().get_list(hkt_date())
     fallback = None if current and current["status"] == "ready" else store().latest_list()
+    saved_note = request.query_params.get("note_saved", "")
     return templates.TemplateResponse(
         request,
         "home.html",
@@ -63,6 +64,7 @@ def home(request: Request):
             "book": store().book(),
             "today": hkt_date(),
             "csrf": CSRF_TOKEN,
+            "note_saved_pick_id": int(saved_note) if saved_note.isdigit() else None,
         },
     )
 
@@ -110,7 +112,7 @@ def save_video_note(
         store().save_video_note(pick_id, candidate_id, note, datetime.now(HKT).isoformat())
     except (KeyError, ValueError) as error:
         raise HTTPException(400, str(error))
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(f"/?note_saved={pick_id}#video-note-{pick_id}", status_code=303)
 
 
 @app.post("/book-position")
