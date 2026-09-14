@@ -275,6 +275,9 @@ class Store:
         changed = False
         picks = c.execute("SELECT * FROM picks WHERE list_date=?", (day,)).fetchall()
         for pick in picks:
+            current = next((x for x in catalog["candidates"] if x["id"] == pick["candidate_id"]), None)
+            if current and self._update_pick_metadata(c, pick, current):
+                changed = True
             if self._latest_disposition(c, pick) not in {"not_started", "not_interesting"}:
                 continue
             candidate = next(
@@ -290,6 +293,28 @@ class Store:
                 present.add(candidate["id"])
                 changed = True
         return changed
+
+    def _update_pick_metadata(self, c, pick, item):
+        """Hydrate delivery details without changing selection or progress."""
+        fields = (
+            "title",
+            "summary",
+            "why",
+            "url",
+            "duration_minutes",
+            "podcast_url",
+            "podcast_verified",
+            "stopping_point",
+            "provenance",
+            "inspection_method",
+            "inspected_at",
+        )
+        values = [item.get(field, 0 if field == "podcast_verified" else None) for field in fields]
+        if all(pick[field] == value for field, value in zip(fields, values, strict=True)):
+            return False
+        assignments = ",".join(f"{field}=?" for field in fields)
+        c.execute(f"UPDATE picks SET {assignments} WHERE id=?", (*values, pick["id"]))
+        return True
 
     def _insert_pick(self, c, day, slot, item, state):
         c.execute(

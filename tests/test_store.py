@@ -26,7 +26,9 @@ CATALOG = {
             "title": "A real inspected video",
             "summary": "A content summary.",
             "why": "A reason.",
-            "url": "https://example.test/watch",
+            "url": "https://read.readwise.io/read/video-1",
+            "reader_url": "https://read.readwise.io/read/video-1",
+            "source_url": "https://www.youtube.com/watch?v=video-1",
             "duration_minutes": 97,
             "stopping_point": "1:00:33",
             "podcast_url": "https://example.test/podcast",
@@ -41,7 +43,9 @@ CATALOG = {
             "title": "A second inspected video",
             "summary": "A second content summary.",
             "why": "A second reason.",
-            "url": "https://example.test/watch-2",
+            "url": "https://read.readwise.io/read/video-2",
+            "reader_url": "https://read.readwise.io/read/video-2",
+            "source_url": "https://www.youtube.com/watch?v=video-2",
             "duration_minutes": 45,
             "inspection_method": "full transcript",
             "inspected_at": "2026-09-14T00:00:00Z",
@@ -129,6 +133,22 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(pick["candidate_id"], "video-2")
         self.assertEqual(pick["state"], "active")
 
+    def test_refresh_hydrates_reader_link_without_resetting_progress(self):
+        unsaved_video = {
+            **CATALOG["candidates"][0],
+            "url": CATALOG["candidates"][0]["source_url"],
+            "reader_url": None,
+        }
+        unsaved_catalog = {**CATALOG, "candidates": [unsaved_video, *CATALOG["candidates"][1:]]}
+        self.store.generate("2026-09-14", unsaved_catalog, "now")
+        self.store.feedback(1, "continue", video_timestamp="0:12:00", now="one")
+
+        self.assertTrue(self.store.generate("2026-09-14", CATALOG, "two", refresh=True))
+        pick = self.store.get_list("2026-09-14")["picks"][0]
+        self.assertEqual(pick["url"], CATALOG["candidates"][0]["reader_url"])
+        self.assertEqual(pick["state"], "continue")
+        self.assertEqual(pick["last_video_timestamp"], "0:12:00")
+
     def test_unanswered_video_carries_without_becoming_backlog(self):
         self.store.generate("2026-09-14", CATALOG, "now")
         reordered = {
@@ -198,6 +218,16 @@ class StoreTests(unittest.TestCase):
         wrong_type = {**CATALOG, "candidates": [{**CATALOG["candidates"][0], "podcast_verified": "false"}]}
         with self.assertRaises(ValueError):
             validate_catalog(wrong_type)
+        youtube = {**CATALOG, "candidates": [{**CATALOG["candidates"][0], "url": "https://youtube.com/watch?v=no"}]}
+        with self.assertRaises(ValueError):
+            validate_catalog(youtube)
+        unsaved = {
+            **CATALOG,
+            "candidates": [
+                {**CATALOG["candidates"][0], "url": CATALOG["candidates"][0]["source_url"], "reader_url": None}
+            ],
+        }
+        validate_catalog(unsaved)
 
 
 class CatalogRefreshTests(unittest.TestCase):
@@ -223,10 +253,28 @@ class CatalogRefreshTests(unittest.TestCase):
         self.dir.cleanup()
 
     def test_manifest_content_link_and_recipe_validation(self):
-        catalog = validate_manifest(self.manifest, url_checker=lambda url: url.startswith("https://"))
+        checked = []
+        catalog = validate_manifest(
+            self.manifest, url_checker=lambda url: checked.append(url) or url.startswith("https://")
+        )
         self.assertNotIn("inspection", catalog["candidates"][0])
+        self.assertIn(catalog["candidates"][0]["url"], checked)
+        self.assertIn(catalog["candidates"][0]["source_url"], checked)
         with self.assertRaises(ValueError):
             validate_manifest(self.manifest, url_checker=lambda _: False)
+
+        read_manifest = {
+            "book": BOOK,
+            "candidates": [
+                {
+                    **CATALOG["candidates"][2],
+                    "inspection": self.manifest["candidates"][0]["inspection"],
+                }
+            ],
+        }
+        read_checked = []
+        validate_manifest(read_manifest, url_checker=lambda url: read_checked.append(url) or True)
+        self.assertEqual(read_checked, [CATALOG["candidates"][2]["url"]])
 
     def test_manifest_rejects_missing_evidence_and_schema(self):
         bad = {

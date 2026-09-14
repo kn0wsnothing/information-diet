@@ -25,10 +25,12 @@ python3 -m venv .venv
 Create `var/runtime.env`, `var/source-manifest.json`, and `var/catalog.json` locally. Do not commit any of them. The manifest adds an `inspection` object to each candidate with a private local `source_path`, `minimum_words`, and `evidence_terms`. Refresh verifies that source text and each direct URL before atomically writing the catalog. The resulting `catalog.json` has this shape:
 
 ```json
-{"book":{"nonfiction_title":"…","reported_page":0,"daily_pace":7,"fiction_title":"…"},"candidates":[{"id":"…","kind":"video","title":"…","summary":"content-based summary","why":"why it matters","url":"https://…","duration_minutes":60,"inspection_method":"full transcript","inspected_at":"2026-09-14T00:00:00Z","provenance":"private source note"}]}
+{"book":{"nonfiction_title":"…","reported_page":0,"daily_pace":7,"fiction_title":"…"},"candidates":[{"id":"…","kind":"video","title":"…","summary":"content-based summary","why":"why it matters","url":"https://read.readwise.io/read/…","reader_url":"https://read.readwise.io/read/…","source_url":"https://www.youtube.com/watch?v=…","duration_minutes":60,"inspection_method":"full transcript","inspected_at":"2026-09-14T00:00:00Z","provenance":"private source note"}]}
 ```
 
 Use the canonical reading records to create the private catalog. Only use sources whose content has been inspected. The application does not store the source text, credentials, or personal inventory in Git.
+
+The preferred video flow is for a human or authorized agent to save the discovery into Readwise Reader before preparation. Store the verified Reader document URL in both `url` and `reader_url`, and retain the original discovery URL as `source_url`. The app has no Readwise write integration. An unsaved video remains eligible, but its `url` must equal `source_url`; the page shows “Add to Reader first” and never makes that source URL a primary watch link.
 
 Prepare a list explicitly:
 

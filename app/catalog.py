@@ -20,6 +20,20 @@ def validate_candidate(item: dict) -> dict:
         raise ValueError("video requires positive duration_minutes")
     if urlparse(item["url"]).scheme not in {"https", "http"}:
         raise ValueError("candidate url must be a direct http(s) link")
+    if item["kind"] == "video":
+        if not isinstance(item.get("source_url"), str) or urlparse(item["source_url"]).scheme not in {"https", "http"}:
+            raise ValueError("video requires original source_url")
+        reader_url = item.get("reader_url")
+        if reader_url is not None:
+            if not isinstance(reader_url, str):
+                raise ValueError("reader_url must be a verified Readwise Reader document")
+            reader = urlparse(reader_url)
+            if reader.scheme != "https" or reader.netloc != "read.readwise.io" or not reader.path.startswith("/read/"):
+                raise ValueError("reader_url must be a verified Readwise Reader document")
+            if item["url"] != reader_url:
+                raise ValueError("saved video url must equal reader_url")
+        elif item["url"] != item["source_url"]:
+            raise ValueError("unsaved video url must equal source_url")
     # A podcast URL is only usable when an inspection explicitly verified it.
     if "podcast_verified" in item and not isinstance(item["podcast_verified"], bool):
         raise ValueError("podcast_verified must be boolean")

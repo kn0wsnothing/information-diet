@@ -17,7 +17,9 @@ CANDIDATE = {
     "kind": "video",
     "summary": "Inspected content summary.",
     "why": "A useful reason.",
-    "url": "https://example.test/video",
+    "url": "https://read.readwise.io/read/video-fixture",
+    "reader_url": "https://read.readwise.io/read/video-fixture",
+    "source_url": "https://www.youtube.com/watch?v=fixture",
     "duration_minutes": 20,
     "inspection_method": "synthetic transcript",
     "inspected_at": "2026-09-14T00:00:00+08:00",
@@ -27,7 +29,14 @@ CATALOG = {
     "book": BOOK,
     "candidates": [
         {**CANDIDATE, "id": "video-1", "title": "First video"},
-        {**CANDIDATE, "id": "video-2", "title": "Second video", "url": "https://example.test/video-2"},
+        {
+            **CANDIDATE,
+            "id": "video-2",
+            "title": "Second video",
+            "url": "https://read.readwise.io/read/video-fixture-2",
+            "reader_url": "https://read.readwise.io/read/video-fixture-2",
+            "source_url": "https://www.youtube.com/watch?v=fixture-2",
+        },
     ],
 }
 
@@ -73,3 +82,31 @@ class WebTests(unittest.TestCase):
         pick = self.store.get_list("2026-09-14")["picks"][0]
         self.assertEqual(pick["candidate_id"], "video-2")
         self.assertEqual(pick["state"], "active")
+
+    def test_video_template_has_saved_and_unsaved_reader_states(self):
+        template = web.templates.get_template("home.html")
+        base_pick = {
+            **CANDIDATE,
+            "id": 1,
+            "candidate_id": "video-1",
+            "slot": "lunch",
+            "title": "Video",
+            "state": "active",
+        }
+        context = {
+            "daily": {"date": "2026-09-14", "book_target": 13, "picks": [base_pick]},
+            "failed_today": None,
+            "book": BOOK,
+            "today": "2026-09-14",
+            "csrf": "test-token",
+        }
+
+        saved = template.render(**context)
+        self.assertIn(f'href="{CANDIDATE["reader_url"]}"', saved)
+        self.assertIn("Open in Reader", saved)
+        self.assertNotIn(CANDIDATE["source_url"], saved)
+
+        unsaved_pick = {**base_pick, "url": base_pick["source_url"], "reader_url": None}
+        unsaved = template.render(**{**context, "daily": {**context["daily"], "picks": [unsaved_pick]}})
+        self.assertIn("Add to Reader first", unsaved)
+        self.assertNotIn(f'href="{unsaved_pick["source_url"]}"', unsaved)

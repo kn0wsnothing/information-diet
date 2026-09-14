@@ -58,7 +58,17 @@ def validate_manifest(manifest: dict, read_text=Path.read_text, url_checker=defa
         missing = [term for term in terms if term.casefold() not in text.casefold()]
         if len(words) < minimum_words or missing:
             raise ValueError(f"inspection evidence failed for {candidate.get('id', 'candidate')}")
-        for url_field in ("url", "podcast_url"):
+        # A saved video validates both its Reader destination and original source.
+        # An unsaved discovery validates its original source and remains eligible.
+        if candidate.get("kind") == "video":
+            fields = (
+                ("source_url", "reader_url", "podcast_url")
+                if candidate.get("reader_url")
+                else ("source_url", "podcast_url")
+            )
+        else:
+            fields = ("url", "podcast_url")
+        for url_field in fields:
             if candidate.get(url_field) and not url_checker(candidate[url_field]):
                 raise ValueError(f"unreachable {url_field} for {candidate.get('id', 'candidate')}")
     try:
