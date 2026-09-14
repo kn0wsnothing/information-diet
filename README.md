@@ -30,7 +30,7 @@ Create `var/runtime.env`, `var/source-manifest.json`, and `var/catalog.json` loc
 
 Use the canonical reading records to create the private catalog. Only use sources whose content has been inspected. The application does not store the source text, credentials, or personal inventory in Git.
 
-The preferred video flow is for a human or authorized agent to save the discovery into Readwise Reader before preparation. Store the verified Reader document URL in both `url` and `reader_url`, and retain the original discovery URL as `source_url`. The app has no Readwise write integration. An unsaved video remains eligible, but its `url` must equal `source_url`; the page shows “Add to Reader first” and never makes that source URL a primary watch link.
+The preferred video flow is for a human or authorized agent to save the discovery into Readwise Reader before preparation. Store the verified Reader document URL in both `url` and `reader_url`, and retain the original discovery URL as `source_url`. The app has no Readwise write integration. An unsaved video remains eligible, but its `url` must equal `source_url`; the page shows “Add to Reader first” with a clearly labelled source link, never a YouTube watch action.
 
 Prepare a list explicitly:
 

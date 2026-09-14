@@ -109,4 +109,6 @@ class WebTests(unittest.TestCase):
         unsaved_pick = {**base_pick, "url": base_pick["source_url"], "reader_url": None}
         unsaved = template.render(**{**context, "daily": {**context["daily"], "picks": [unsaved_pick]}})
         self.assertIn("Add to Reader first", unsaved)
-        self.assertNotIn(f'href="{unsaved_pick["source_url"]}"', unsaved)
+        self.assertIn("YouTube source to save in Reader", unsaved)
+        self.assertIn(f'href="{unsaved_pick["source_url"]}"', unsaved)
+        self.assertNotIn("Open watch", unsaved)
